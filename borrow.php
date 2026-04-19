@@ -163,7 +163,7 @@ $return_id = $_GET['fill_return'] ?? "";
 
 <div class="container">
     <div class="nav-bar">
-        <a href="index.php" class="btn-back"><i class="fa fa-arrow-left"></i> Quay về Dashboard</a>
+        <a href="index.php" class="btn-back"><i class="fa fa-arrow-left"></i> Quay về trang chủ</a>
         <span>Thủ thư: <b><?php echo $_SESSION['username']; ?></b></span>
     </div>
 
@@ -176,8 +176,8 @@ $return_id = $_GET['fill_return'] ?? "";
             <h3><i class="fa fa-plus-circle"></i> Cho mượn sách</h3>
             <form method="post">
                 <div class="input-group">
-                    <label>Mã giao dịch</label>
-                    <input type="text" name="borrowid" placeholder="VD: BRW001" required>
+                    <label>Mã mượn sách</label>
+                    <input type="text" name="borrowid" placeholder="VD: 111222" required>
                 </div>
                 <div class="input-group">
                     <label>Mã Sinh viên</label>
@@ -199,7 +199,7 @@ $return_id = $_GET['fill_return'] ?? "";
             <h3><i class="fa fa-undo"></i> Nhận trả sách</h3>
             <form method="post">
                 <div class="input-group">
-                    <label>ID Giao dịch</label>
+                    <label>Mã trả sách</label>
                     <input type="text" name="borrow_id_return" value="<?php echo $return_id; ?>" placeholder="Nhập mã cần trả..." required>
                 </div>
                 <div class="input-group">

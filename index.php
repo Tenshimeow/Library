@@ -103,7 +103,7 @@ $count_librarians = ($role == "ADMIN") ? $conn->query("SELECT COUNT(*) as t FROM
 
     <div class="container">
         <div style="margin-bottom: 35px;">
-            <h1 style="margin: 0; font-size: 28px;">Xin chào, <?php echo $username; ?> 👋</h1>
+            <h1 style="margin: 0; font-size: 28px;">Xin chào, <?php echo $username; ?> cute!</h1>
             <p style="color: #94a3b8; margin-top: 5px;">Hệ thống đang hoạt động ổn định.</p>
         </div>
 

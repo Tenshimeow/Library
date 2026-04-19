@@ -166,7 +166,7 @@ $suggest_res = $conn->query("SELECT librarianid, librarianname FROM librarian");
         <form method="POST">
             <div class="form-grid">
                 <div class="input-group">
-                    <label>Mã Thủ thư (Cố định)</label>
+                    <label>Mã Thủ thư </label>
                     <input type="text" name="librarianid" placeholder="VD: 001" value="<?php echo $edit_data['librarianid'] ?? ''; ?>" <?php echo $edit_data ? 'readonly' : 'required'; ?>>
                 </div>
                 <div class="input-group">
