@@ -28,8 +28,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_login'])) {
             $_SESSION['username'] = $username; 
             $_SESSION['display_name'] = $row['librarianname']; 
             $_SESSION['role'] = $row['role'];
+
+            $log_detail = "Thủ thư " . $row['librarianname'] . " ($username) đã đăng nhập hệ thống.";
+            $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'LOGIN', ?, NOW())");
+            $log_stmt->bind_param("ss", $username, $log_detail);
+            $log_stmt->execute();
+
             echo json_encode(['success' => true, 'redirect' => 'index.php']);
         } else {
+            $log_fail = "Cảnh báo: Thử đăng nhập sai mật khẩu cho tài khoản: $username";
+            $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'LOGIN_FAIL', ?, NOW())");
+            $log_stmt->bind_param("ss", $username, $log_fail);
+            $log_stmt->execute();
+
             echo json_encode(['success' => false, 'message' => 'Mật khẩu không chính xác']);
         }
     } else {

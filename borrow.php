@@ -10,6 +10,7 @@ if(!isset($_SESSION['username'])){
 $msg = "";
 $msg_type = "";
 
+// mượn sách 
 if(isset($_POST['borrow'])){
     $borrowid = trim($_POST['borrowid']);
     $studentid = trim($_POST['studentid']);
@@ -47,16 +48,25 @@ if(isset($_POST['borrow'])){
                 $up_book = $conn->prepare("UPDATE book SET available = available - 1 WHERE bookid=?");
                 $up_book->bind_param("s", $bookid);
                 $up_book->execute();
+                $log_detail = "Cho SV " . $student_data['studentname'] . " mượn cuốn: " . $book_data['bookname'] . " (Mã mượn: $borrowid)";
+                $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'MƯỢN SÁCH', ?, NOW())");
+                $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
+                $log_stmt->execute();
+
                 $msg = "Đã thực hiện cho mượn thành công!"; $msg_type = "success";
             }
         }
     }
 }
+
+// trả sách 
 if(isset($_POST['return'])){
     $borrowid = trim($_POST['borrow_id_return']);
     $date_return = $_POST['date_return'];
-
-    $q = $conn->prepare("SELECT bookid, status FROM borrow WHERE borrowid=?");
+    $q = $conn->prepare("SELECT b.bookid, b.status, s.studentname, bk.bookname FROM borrow b 
+                         JOIN student s ON b.studentid = s.studentid 
+                         JOIN book bk ON b.bookid = bk.bookid 
+                         WHERE b.borrowid=?");
     $q->bind_param("s", $borrowid);
     $q->execute();
     $data = $q->get_result()->fetch_assoc();
@@ -74,15 +84,22 @@ if(isset($_POST['return'])){
             $up_book = $conn->prepare("UPDATE book SET available = available + 1 WHERE bookid=?");
             $up_book->bind_param("s", $data['bookid']);
             $up_book->execute();
+
+            $log_detail = "Nhận lại sách '" . $data['bookname'] . "' từ SV " . $data['studentname'] . " (Mã mượn: $borrowid)";
+            $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'TRẢ SÁCH', ?, NOW())");
+            $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
+            $log_stmt->execute();
+
             $msg = "Đã nhận lại sách và cập nhật kho!"; $msg_type = "success";
         }
     }
 }
 
+// Xóa lịch sử mượn
 if(isset($_GET['delete'])){
     $id = $_GET['delete'];
     
-    $q = $conn->prepare("SELECT bookid, status FROM borrow WHERE borrowid=?");
+    $q = $conn->prepare("SELECT bookid, status, studentid FROM borrow WHERE borrowid=?");
     $q->bind_param("s", $id);
     $q->execute();
     $data = $q->get_result()->fetch_assoc();
@@ -96,7 +113,12 @@ if(isset($_GET['delete'])){
         
         $del = $conn->prepare("DELETE FROM borrow WHERE borrowid=?");
         $del->bind_param("s", $id);
-        $del->execute();
+        if($del->execute()){
+            $log_detail = "Đã xóa lịch sử mượn mã $id của SV " . $data['studentid'];
+            $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'XÓA MƯỢN', ?, NOW())");
+            $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
+            $log_stmt->execute();
+        }
     }
     header("Location: borrow.php?status=deleted");
     exit();

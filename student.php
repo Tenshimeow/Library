@@ -10,7 +10,7 @@ if(!isset($_SESSION['username'])){
 $msg = "";
 $msg_type = ""; 
 
-/* thêm */
+// thêm
 if(isset($_POST['insert'])){
     $id = $_POST['id'];
     $name = $_POST['name'];
@@ -34,14 +34,18 @@ if(isset($_POST['insert'])){
             $stmt = $conn->prepare("INSERT INTO student (studentid, studentname, gender, birthday, class, email, address) VALUES(?,?,?,?,?,?,?)");
             $stmt->bind_param("sssssss", $id, $name, $gender, $birthday, $class, $email, $address);
             if($stmt->execute()){
-                $msg = "Đã thêm sinh viên thành công!";
-                $msg_type = "success";
+                $log_detail = "Đã thêm sinh viên mới: $name (MSSV: $id)";
+                $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'THÊM', ?, NOW())");
+                $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
+                $log_stmt->execute();
+                header("Location: student.php?status=inserted");
+                exit();
             }
         }
     }
 }
 
-/* sửa */
+// sửa
 if(isset($_POST['update'])){
     $id = $_POST['id'];
     $name = $_POST['name'];
@@ -54,28 +58,37 @@ if(isset($_POST['update'])){
     $stmt = $conn->prepare("UPDATE student SET studentname=?, gender=?, birthday=?, class=?, email=?, address=? WHERE studentid=?");
     $stmt->bind_param("sssssss", $name, $gender, $birthday, $class, $email, $address, $id);
     if($stmt->execute()){
+        $log_detail = "Đã cập nhật thông tin sinh viên MSSV: $id";
+        $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'SỬA', ?, NOW())");
+        $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
+        $log_stmt->execute();
         header("Location: student.php?status=updated");
         exit();
     }
 }
 
-/* xóa */
+// xóa
 if(isset($_GET['delete'])){
     $id = $_GET['delete'];
     $stmt = $conn->prepare("DELETE FROM student WHERE studentid=?");
     $stmt->bind_param("s", $id);
     if($stmt->execute()){
+        $log_detail = "Đã xóa hồ sơ sinh viên MSSV: $id";
+        $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'XÓA', ?, NOW())");
+        $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
+        $log_stmt->execute();
         header("Location: student.php?status=deleted");
         exit();
     }
 }
 
 if(isset($_GET['status'])){
+    if($_GET['status'] == 'inserted'){ $msg = "Đã thêm sinh viên mới thành công!"; $msg_type = "success"; }
     if($_GET['status'] == 'deleted'){ $msg = "Đã xóa hồ sơ thành công!"; $msg_type = "success"; }
     if($_GET['status'] == 'updated'){ $msg = "Đã cập nhật thông tin thành công!"; $msg_type = "success"; }
 }
 
-/* tìm kiếm */
+// tìm kiếm 
 $search = $_GET['search'] ?? "";
 if($search != ""){
     $query = "SELECT * FROM student WHERE studentid LIKE ? OR studentname LIKE ? OR class LIKE ?";
@@ -88,7 +101,7 @@ if($search != ""){
     $result = $conn->query("SELECT * FROM student ORDER BY studentid DESC");
 }
 
-/* lấy dữ liệu */
+// lấy dữ liệu
 $edit = null;
 if(isset($_GET['edit'])){
     $id = $_GET['edit'];
@@ -98,7 +111,7 @@ if(isset($_GET['edit'])){
     $edit = $stmt->get_result()->fetch_assoc();
 }
 ?>
-
+ 
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -187,7 +200,7 @@ if(isset($_GET['edit'])){
             <div class="form-grid">
                 <div class="input-group">
                     <label>Mã sinh viên (MSSV)</label>
-                    <input type="text" name="id" placeholder="VD: SV2024001" value="<?php echo $edit['studentid'] ?? ''; ?>" <?php echo $edit ? 'readonly style="opacity:0.6; cursor:not-allowed;"' : ''; ?> required>
+                    <input type="text" name="id" placeholder="VD: 123456" value="<?php echo $edit['studentid'] ?? ''; ?>" <?php echo $edit ? 'readonly style="opacity:0.6; cursor:not-allowed;"' : ''; ?> required>
                 </div>
                 <div class="input-group">
                     <label>Họ và Tên</label>

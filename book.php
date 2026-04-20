@@ -10,7 +10,6 @@ if(!isset($_SESSION['username'])){
 $msg = "";
 $msg_type = ""; 
 
-
 if(isset($_POST['insert'])){
     $id = $_POST['bookid'];
     $name = $_POST['bookname'];
@@ -33,6 +32,11 @@ if(isset($_POST['insert'])){
             $stmt = $conn->prepare("INSERT INTO book (bookid, bookname, author, publisher, category, quantity, available) VALUES(?,?,?,?,?,?,?)");
             $stmt->bind_param("sssssii", $id, $name, $author, $publisher, $category, $qty, $qty);
             if($stmt->execute()){
+                $log_detail = "Nhập kho sách mới: $name (Mã: $id, SL: $qty)";
+                $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'THÊM SÁCH', ?, NOW())");
+                $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
+                $log_stmt->execute();
+                
                 $msg = "Đã nhập sách vào kho thành công!";
                 $msg_type = "success";
             }
@@ -52,6 +56,11 @@ if(isset($_POST['update'])){
     $stmt = $conn->prepare("UPDATE book SET bookname=?, author=?, publisher=?, category=?, quantity=?, available=? WHERE bookid=?");
     $stmt->bind_param("ssssiis", $name, $author, $publisher, $category, $qty, $avail, $id);
     if($stmt->execute()){
+        $log_detail = "Cập nhật thông tin sách: $name (Mã: $id)";
+        $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'SỬA SÁCH', ?, NOW())");
+        $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
+        $log_stmt->execute();
+
         header("Location: book.php?status=updated");
         exit();
     }
@@ -59,14 +68,24 @@ if(isset($_POST['update'])){
 
 if(isset($_GET['delete'])){
     $id = $_GET['delete'];
+    $get_name = $conn->prepare("SELECT bookname FROM book WHERE bookid=?");
+    $get_name->bind_param("s", $id);
+    $get_name->execute();
+    $b_result = $get_name->get_result()->fetch_assoc();
+    $b_name = $b_result['bookname'] ?? "Không xác định";
+
     $stmt = $conn->prepare("DELETE FROM book WHERE bookid=?");
     $stmt->bind_param("s", $id);
     if($stmt->execute()){
+        $log_detail = "Đã xóa đầu sách: $b_name (Mã: $id)";
+        $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'XÓA SÁCH', ?, NOW())");
+        $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
+        $log_stmt->execute();
+
         header("Location: book.php?status=deleted");
         exit();
     }
 }
-
 
 if(isset($_GET['status'])){
     if($_GET['status'] == 'deleted'){ $msg = "Đã xóa đầu sách thành công!"; $msg_type = "success"; }
