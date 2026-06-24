@@ -2,7 +2,7 @@
 
 $host = "localhost";
 $user = "root";
-$pass = "";
+$pass =  "";
 $db   = "librarydb";
 $port = 3307;
 
