@@ -1,10 +1,10 @@
 <?php
 
-$host = "localhost";
-$user = "root";
-$pass = "";
+$host = "127.0.0.1";
+$user = "admin_library";
+$pass = "Library@2026";
 $db   = "librarydb";
-$port = 3307;
+$port = 3306;
 
 // Tạo kết nối
 $conn = new mysqli($host, $user, $pass, $db, $port);
