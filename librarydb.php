@@ -4,7 +4,7 @@ $host = "localhost";
 $user = "root";
 $pass =  "";
 $db   = "librarydb";
-$port = 3307;
+$port = 3306;
 
 // Tạo kết nối
 $conn = new mysqli($host, $user, $pass, $db, $port);
