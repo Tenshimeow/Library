@@ -24,67 +24,221 @@ $count_librarians = ($role == "ADMIN") ? $conn->query("SELECT COUNT(*) as t FROM
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trang chủ | Library System</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>DANH SACH DAU SACH </title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #6366f1; --secondary: #06b6d4; --bg-dark: #0f172a; --card-glass: rgba(255, 255, 255, 0.03); --sidebar-color: #1e293b; --danger: #ef4444; }
-        body { margin: 0; font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #1e293b, #020617); color: #f1f5f9; display: flex; min-height: 100vh; }
-        .sidebar { width: 260px; background: var(--sidebar-color); border-right: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; position: fixed; height: 100vh; }
-        .sidebar-header { padding: 40px 20px; text-align: center; font-size: 20px; font-weight: 800; background: linear-gradient(to right, #818cf8, #22d3ee); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .sidebar-menu { padding: 10px; flex-grow: 1; }
-        .sidebar-menu a { display: flex; align-items: center; padding: 12px 20px; color: #94a3b8; text-decoration: none; transition: 0.3s; border-radius: 12px; margin-bottom: 5px; }
-        .sidebar-menu a:hover, .sidebar-menu a.active { background: rgba(255,255,255,0.05); color: #fff; transform: translateX(5px); }
-        .sidebar-menu a i { width: 30px; }
-        .main { margin-left: 260px; width: calc(100% - 260px); }
-        .top-nav { padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 100; }
-        .avatar-circle { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--primary); overflow: hidden; display: flex; justify-content: center; align-items: center; background: var(--primary); font-weight: bold; font-size: 18px; color: white; }
-        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
-        .dropdown-menu { position: absolute; top: 55px; right: 0; width: 220px; background: #1e293b; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 25px rgba(0,0,0,0.5); display: none; overflow: hidden; }
-        .dropdown-menu.active { display: block; animation: slideDown 0.3s; }
-        .dropdown-menu a { display: flex; align-items: center; gap: 10px; padding: 12px 20px; color: #cbd5e1; text-decoration: none; font-size: 14px; transition: 0.2s; }
-        .dropdown-menu a:hover { background: rgba(255,255,255,0.08); color: #fff; }
-        .container { padding: 40px; }
-        .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px; }
-        .stat-card { background: var(--card-glass); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); text-align: center; }
-        .stat-card b { font-size: 24px; color: var(--secondary); display: block; margin-top: 5px; }
-        .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; }
-        .action-card { background: var(--card-glass); padding: 30px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 20px; cursor: pointer; transition: 0.4s; text-decoration: none; color: inherit; position: relative; }
-        .action-card:hover { background: rgba(99, 102, 241, 0.1); border-color: var(--primary); transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .icon-box { width: 60px; height: 60px; border-radius: 16px; display: flex; justify-content: center; align-items: center; font-size: 24px; }
-        .blue { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
-        .green { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-        .purple { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
-        .red { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-        .orange { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-        .card-info h4 { margin: 0; font-size: 18px; }
-        .card-info p { margin: 5px 0 0; font-size: 13px; color: #94a3b8; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'VT323', monospace; 
+        }
+        
+        body { 
+            background-color: #000000; 
+            color: #00FF00; 
+            display: flex; 
+            min-height: 100vh; 
+            font-size: 22px; 
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 999;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .sidebar { 
+            width: 260px; 
+            background: #000000; 
+            border-right: 4px double #00FF00; 
+            display: flex; 
+            flex-direction: column; 
+            position: fixed; 
+            height: 100vh; 
+            z-index: 99;
+            padding: 10px;
+        }
+        .sidebar-header { 
+            padding: 15px 10px; 
+            font-size: 28px; 
+            font-weight: bold;
+            color: #FFFF00; 
+            text-align: center;
+            border-bottom: 4px double #00FF00;
+            text-transform: uppercase;
+            text-shadow: 2px 2px #FF0000; 
+        }
+        .sidebar-title {
+            padding: 20px 10px 5px;
+            font-size: 20px;
+            color: #00FFFF; 
+            text-transform: uppercase;
+        }
+        .sidebar-menu { padding: 0 5px; flex-grow: 1; }
+        .sidebar-menu a { 
+            display: block; 
+            padding: 8px 12px; 
+            color: #00FF00; 
+            text-decoration: none; 
+            margin-bottom: 5px;
+            border: 2px solid transparent;
+        }
+        .sidebar-menu a:hover, .sidebar-menu a.active { 
+            background: #00FF00; 
+            color: #000000; 
+            font-weight: bold;
+            border: 2px dashed #000000;
+        }
+        .sidebar-menu a::before {
+            content: "[ ] ";
+        }
+        .sidebar-menu a:hover::before, .sidebar-menu a.active::before {
+            content: "[>] "; 
+        }
+
+        .main { margin-left: 260px; width: calc(100% - 260px); display: flex; flex-direction: column; }
+        
+        .top-nav { 
+            padding: 0 20px; 
+            height: 60px;
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: #000000; 
+            border-bottom: 4px double #00FF00; 
+        }
+        .top-nav .nav-title { font-size: 24px; color: #FFFF00; font-weight: bold; }
+        
+        .profile-container { position: relative; }
+        .avatar-trigger { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .avatar-circle { 
+            width: 36px; 
+            height: 36px; 
+            border: 2px solid #00FF00; 
+            overflow: hidden; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            background: #000000; 
+            font-weight: bold; 
+            color: #00FF00; 
+        }
+        .avatar-circle img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(2); }
+        
+        .dropdown-menu { 
+            position: absolute; 
+            top: 50px; 
+            right: 0; 
+            width: 160px; 
+            background: #000000; 
+            border: 3px solid #00FF00; 
+            display: none; 
+            z-index: 105;
+        }
+        .dropdown-menu.active { display: block; }
+        .dropdown-menu a { 
+            display: block; 
+            padding: 8px 12px; 
+            color: #00FF00; 
+            text-decoration: none; 
+        }
+        .dropdown-menu a:hover { background: #FFFF00; color: #000000; }
+
+        .container { padding: 25px; max-width: 1200px; width: 100%; margin: 0 auto; }
+        
+        .page-header { margin-bottom: 30px; text-align: center; }
+        .page-header h1 { font-size: 36px; color: #FFFF00; text-shadow: 2px 2px #00FFFF; }
+
+        .section-title { 
+            font-size: 24px; 
+            color: #FFFF00; 
+            margin-bottom: 15px; 
+            padding: 5px 10px;
+            background: #002200; 
+            border: 2px solid #00FF00;
+            display: inline-block;
+        }
+
+        .stats-bar { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+            gap: 20px; 
+            margin-bottom: 35px; 
+        }
+        .stat-card { 
+            background: #000000; 
+            padding: 15px; 
+            border: 3px solid #00FF00; 
+            box-shadow: 5px 5px 0px #004400; 
+        }
+        .stat-card .label { font-size: 18px; color: #00FFFF; margin-bottom: 5px; }
+        .stat-card .value { font-size: 42px; color: #00FF00; font-weight: bold; }
+        .stat-card .value.alert { color: #FF00FF; } 
+
+        .action-list { 
+            display: flex;
+            flex-direction: column;
+            background: #000000;
+            border: 3px solid #00FF00;
+            margin-bottom: 20px;
+        }
+        .action-item { 
+            display: block; 
+            padding: 15px 20px; 
+            border-bottom: 2px dashed #004400;
+            text-decoration: none; 
+            color: #00FF00; 
+            transition: all 0.1s;
+        }
+        .action-item:last-child { border-bottom: none; }
+        .action-item:hover { 
+            background: #002200; 
+            padding-left: 30px; 
+        }
+        
+        .card-info h4 { font-size: 26px; color: #00FF00; display: flex; align-items: center; }
+        .action-item:hover h4 { color: #FFFF00; }
+        .card-info h4::before { content: "► "; margin-right: 10px; color: #FFFF00; }
+        .card-info p { font-size: 18px; color: #a0aec0; margin-top: 5px; }
     </style>
 </head>
 <body>
+
 <div class="sidebar">
-    <div class="sidebar-header">LIBRARY TENSHIMEOW</div>
+    <div class="sidebar-header">THU VIEN NHOM 7</div>
+    
+    <div class="sidebar-title">--- MENU ---</div>
     <div class="sidebar-menu">
-        <a href="index.php" class="active"><i class="fa-solid fa-house"></i> Tổng quan</a>
-        <a href="student.php"><i class="fa-solid fa-users"></i> Sinh viên</a>
-        <a href="book.php"><i class="fa-solid fa-book"></i> Sách</a>
-        <a href="borrow.php"><i class="fa-solid fa-exchange-alt"></i> Mượn & Trả</a>
-        <a href="system_log.php"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử & thông báo</a>
+        <a href="index.php" class="active">Trang chu</a>
+        <a href="student.php">Quan ly sinh vien</a>
+        <a href="book.php">Quan ly sach</a>
+        <a href="borrow.php">Muon va tra sach</a>
+        <a href="system_log.php">Nhat ky he thong</a>
+        
         <?php if($role == "ADMIN"): ?>
-            <div style="margin: 20px 20px 10px; font-size: 11px; color: #475569; font-weight: bold; text-transform: uppercase;">Quản trị viên</div>
-            <a href="librarian.php"><i class="fa-solid fa-shield-halved"></i> Quản lý thủ thư</a>
+            <div class="sidebar-title">--- ADMIN ---</div>
+            <a href="librarian.php">Quan ly thu thu</a>
         <?php endif; ?>
     </div>
 </div>
 
 <div class="main">
     <nav class="top-nav">
-        <div style="font-weight: 600; font-size: 14px; color: #94a3b8;">HỆ THỐNG QUẢN LÝ THƯ VIỆN</div>
-        <div class="profile-container" style="position:relative;">
-            <div class="avatar-trigger" onclick="toggleMenu()" style="display:flex; align-items:center; gap:12px; cursor:pointer;">
-                <div style="text-align: right">
-                    <div style="font-size: 14px; font-weight: bold;"><?php echo $username; ?></div>
-                    <div style="font-size: 11px; color: var(--secondary);"><?php echo $role; ?></div>
+        <div class="nav-title">HE THONG QUAN LY THU VIEN </div>
+        
+        <div class="profile-container">
+            <div class="avatar-trigger" onclick="toggleMenu()">
+                <div style="text-align: right; margin-right: 5px;">
+                    <div style="font-size: 18px; font-weight: bold; color: #00FF00;"><?php echo htmlspecialchars($username); ?></div>
+                    <div style="font-size: 14px; color: #FFFF00;">[<?php echo htmlspecialchars($role); ?>]</div>
                 </div>
                 <div class="avatar-circle">
                     <?php if($avatar_path): ?>
@@ -94,57 +248,93 @@ $count_librarians = ($role == "ADMIN") ? $conn->query("SELECT COUNT(*) as t FROM
                     <?php endif; ?>
                 </div>
             </div>
+            
             <div class="dropdown-menu" id="userMenu">
-                <a href="change_password.php"><i class="fa fa-key"></i> Đổi mật khẩu</a>
-                <a href="logout.php" style="color: #f87171; border-top: 1px solid rgba(255,255,255,0.05);"><i class="fa fa-sign-out"></i> Đăng xuất</a>
+                <a href="change_password.php">> Doi mat khau</a>
+                <a href="logout.php" style="color: #FF0000; border-top: 2px dashed #00FF00;">> Dang xuat</a>
             </div>
         </div>
     </nav>
 
     <div class="container">
-        <div style="margin-bottom: 35px;">
-            <h1 style="margin: 0; font-size: 28px;">Xin chào, <?php echo $username; ?> cute!</h1>
-            <p style="color: #94a3b8; margin-top: 5px;">Hệ thống đang hoạt động ổn định.</p>
+        <div class="page-header">
+            <h1>CHAO MUNG TRO LAI: <?php echo strtoupper(htmlspecialchars($username)); ?></h1>
         </div>
 
+        <div class="section-title">SO LIEU THU VIEN HIEN TAI</div>
         <div class="stats-bar">
-            <div class="stat-card">Sinh viên <b><?php echo number_format($count_students); ?></b></div>
-            <div class="stat-card">Tổng sách <b><?php echo number_format($count_books); ?></b></div>
-            <div class="stat-card">Đang mượn <b style="color: #fbbf24;"><?php echo number_format($count_borrowing); ?></b></div>
+            <div class="stat-card">
+                <div class="label">TONG SO SINH VIEN</div>
+                <div class="value"><?php echo number_format($count_students); ?></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">TONG SO DAU SACH</div>
+                <div class="value"><?php echo number_format($count_books); ?></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">SACH DANG MUON</div>
+                <div class="value alert"><?php echo number_format($count_borrowing); ?></div>
+            </div>
             <?php if($role == "ADMIN"): ?>
-                <div class="stat-card">Thủ thư <b><?php echo $count_librarians; ?></b></div>
+                <div class="stat-card">
+                    <div class="label">SO LUONG THU THU</div>
+                    <div class="value"><?php echo $count_librarians; ?></div>
+                </div>
             <?php endif; ?>
         </div>
 
-        <div class="action-grid">
-            <a href="student.php" class="action-card">
-                <div class="icon-box blue"><i class="fa-solid fa-user-plus"></i></div>
-                <div class="card-info"><h4>Sinh Viên</h4><p>Quản lý sinh viên</p></div>
+        <div class="section-title">CAC CHUC NANG CO THE THUC HIEN</div>
+        <div class="action-list">
+            <a href="student.php" class="action-item">
+                <div class="card-info">
+                    <h4>QUAN LY SINH VIEN</h4>
+                    <p>Xem danh sach, them tai khoan sinh vien moi hoac sua thong tin ho so sinh vien.</p>
+                </div>
             </a>
-            <a href="book.php" class="action-card">
-                <div class="icon-box green"><i class="fa-solid fa-book"></i></div>
-                <div class="card-info"><h4>Sách</h4><p>Kho sách thư viện</p></div>
+            
+            <a href="book.php" class="action-item">
+                <div class="card-info">
+                    <h4>QUAN LY SACH</h4>
+                    <p>Theo doi so luong sach trong kho, them dau sach moi hoac chinh sua danh muc.</p>
+                </div>
             </a>
-            <a href="borrow.php" class="action-card">
-                <div class="icon-box purple"><i class="fa-solid fa-exchange-alt"></i></div>
-                <div class="card-info"><h4>Mượn & Trả</h4><p>Quản lý mượn trả</p></div>
+            
+            <a href="borrow.php" class="action-item">
+                <div class="card-info">
+                    <h4>MUON VA TRA SACH</h4>
+                    <p>Tao phieu cho muon sach, xu ly nhan sach tra va kiem tra cac phieu qua han.</p>
+                </div>
             </a>
+            
             <?php if($role == "ADMIN"): ?>
-            <a href="librarian.php" class="action-card">
-                <div class="icon-box red"><i class="fa-solid fa-user-gear"></i></div>
-                <div class="card-info"><h4>Thủ Thư</h4><p>Quản lý nhân sự</p></div>
+            <a href="librarian.php" class="action-item">
+                <div class="card-info">
+                    <h4>QUAN LY THU THU</h4>
+                    <p>Them nhan su moi, phan quyen truy cap he thong hoac khoa tai khoan nhan vien.</p>
+                </div>
             </a>
             <?php endif; ?>
-            <a href="system_log.php" class="action-card">
-                <div class="icon-box orange"><i class="fa-solid fa-list-check"></i></div>
-                <div class="card-info"><h4>Lịch sử & thông báo</h4><p>Nhật ký hệ thống</p></div>
-                </a>
+            
+            <a href="system_log.php" class="action-item">
+                <div class="card-info">
+                    <h4>NHAT KY HE THONG</h4>
+                    <p>Theo doi lich su dang nhap, cac thao tac chinh sua du lieu cua cac tai khoan.</p>
+                </div>
+            </a>
         </div>
     </div>
 </div>
+
 <script>
-    function toggleMenu() { document.getElementById('userMenu').classList.toggle('active'); }
-    window.onclick = function(event) { if (!event.target.closest('.profile-container')) { var menu = document.getElementById('userMenu'); if (menu.classList.contains('active')) menu.classList.remove('active'); } }
+    function toggleMenu() { 
+        document.getElementById('userMenu').classList.toggle('active'); 
+    }
+    window.onclick = function(event) { 
+        if (!event.target.closest('.profile-container')) { 
+            var menu = document.getElementById('userMenu'); 
+            if (menu.classList.contains('active')) menu.classList.remove('active'); 
+        } 
+    }
 </script>
 </body>
 </html>

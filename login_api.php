@@ -1,4 +1,5 @@
 <?php
+session_start();
 header("Content-Type: application/json");
 include "librarydb.php";
 
@@ -17,6 +18,10 @@ $result = $conn->query($sql);
 
 if ($result->num_rows > 0) {
     $user = $result->fetch_assoc();
+
+    $_SESSION['username'] = $username;
+    $_SESSION['display_name'] = $user['librarianname'];
+    $_SESSION['role'] = $user['role'];
 
     echo json_encode([
         "status" => true,

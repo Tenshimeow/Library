@@ -1,10 +1,21 @@
 <?php
+session_start(); 
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 include "librarydb.php";
+include "log.php"; 
 
+
+if(!isset($_SESSION['username'])){
+    http_response_code(401);
+    echo json_encode(["error" => "Yêu cầu quyền truy cập tài khoản hợp lệ từ hệ thống!"]);
+    exit;
+}
+
+$myUsername = $_SESSION['username'];
+$myRole = $_SESSION['role'];
 $method = $_SERVER['REQUEST_METHOD'];
 $data = json_decode(file_get_contents("php://input"), true);
 
@@ -18,27 +29,36 @@ switch ($method) {
             $stmt->bind_param("s", $studentid);
             $stmt->execute();
             $res = $stmt->get_result()->fetch_assoc();
+            
+            
+            if($res) {
+                logAction($myUsername, $myRole, 'ACCESS', "Xem chi tiết thông tin Sinh viên có mã: $studentid");
+            }
             echo json_encode($res ? $res : ["message" => "Khong tim thay sinh vien"]);
         } 
         elseif ($studentname) {
             $search = "%" . $studentname . "%";
-            $stmt = $conn->prepare("SELECT * FROM student WHERE studentname LIKE ?");
-            $stmt->bind_param("s", $search);
+            $stmt = $conn->prepare("SELECT * FROM student WHERE studentname LIKE ? OR studentid LIKE ? OR class LIKE ?");
+            $stmt->bind_param("sss", $search, $search, $search);
             $stmt->execute();
             $result = $stmt->get_result();     
             $data_list = [];
             while ($row = $result->fetch_assoc()) { $data_list[] = $row; }
+            
+          
+            logAction($myUsername, $myRole, 'SEARCH', "Tìm kiếm Sinh viên với từ khóa: '$studentname'");
             echo json_encode($data_list); 
         } 
         else {
-
             $result = $conn->query("SELECT * FROM student ORDER BY studentid DESC");
             $data_list = [];
             while ($row = $result->fetch_assoc()) { $data_list[] = $row; }
+            
+           
+            logAction($myUsername, $myRole, 'ACCESS', "Truy cập Form Quản lý Sinh viên");
             echo json_encode($data_list);
         }
         break;
-
 
     case 'POST':
         if (empty($data['studentid']) || empty($data['studentname']) || empty($data['email'])) {
@@ -52,20 +72,25 @@ switch ($method) {
         if ($check->get_result()->num_rows > 0) {
             echo json_encode(["error" => "Ma sinh vien nay da ton tai!"]);
         } else {
-            $stmt = $conn->prepare("INSERT INTO student (studentid, studentname, email, address, gender, birthday, class) VALUES(?,?,?,?,?,?,?)");
+            $stmt = $conn->prepare("INSERT INTO student (studentid, studentname, gender, birthday, class, email, address) VALUES(?,?,?,?,?,?,?)");
             $stmt->bind_param("sssssss", 
-                $data['studentid'], $data['studentname'], $data['email'], 
-                $data['address'], $data['gender'], $data['birthday'], $data['class']
+                $data['studentid'], $data['studentname'], $data['gender'], 
+                $data['birthday'], $data['class'], $data['email'], $data['address']
             );
 
             if ($stmt->execute()) {
+                logAction(
+                    $myUsername, 
+                    $myRole, 
+                    'INSERT', 
+                    "Thêm mới Sinh viên thành công. MSSV: " . $data['studentid'] . " - Họ tên: " . $data['studentname'] . " - Lớp: " . $data['class']
+                );
                 echo json_encode(["message" => "Them sinh vien thanh cong"]);
             } else {
-                echo json_encode(["error" => $stmt->error]);
+                echo json_encode(["error" => "Khong the them sinh vien"]);
             }
         }
         break;
-
 
     case 'PUT':
         if (empty($data['studentid'])) {
@@ -73,19 +98,24 @@ switch ($method) {
             break;
         }
 
-        $stmt = $conn->prepare("UPDATE student SET studentname=?, email=?, address=?, gender=?, birthday=?, class=? WHERE studentid=?");
+        $stmt = $conn->prepare("UPDATE student SET studentname=?, gender=?, birthday=?, class=?, email=?, address=? WHERE studentid=?");
         $stmt->bind_param("sssssss", 
-            $data['studentname'], $data['email'], $data['address'], 
-            $data['gender'], $data['birthday'], $data['class'], $data['studentid']
+            $data['studentname'], $data['gender'], $data['birthday'], 
+            $data['class'], $data['email'], $data['address'], $data['studentid']
         );
 
         if ($stmt->execute()) {
-            echo json_encode(["message" => "Cap nhat thanh cong"]);
+            logAction(
+                $myUsername, 
+                $myRole, 
+                'UPDATE', 
+                "Cập nhật thông tin Sinh viên. MSSV: " . $data['studentid'] . " thành: " . $data['studentname'] . " - Lớp: " . $data['class']
+            );
+            echo json_encode(["message" => "Cap nhat thong tin thanh cong"]);
         } else {
-            echo json_encode(["error" => $stmt->error]);
+            echo json_encode(["error" => "Cap nhat that bai"]);
         }
         break;
-
 
     case 'DELETE':
         $studentid = $_GET['studentid'] ?? $data['studentid'] ?? null;
@@ -99,6 +129,7 @@ switch ($method) {
         $stmt->bind_param("s", $studentid);
 
         if ($stmt->execute()) {
+            logAction($myUsername, $myRole, 'DELETE', "Xóa vĩnh viễn dữ liệu Sinh viên có mã MSSV: $studentid");
             echo json_encode(["message" => "Xoa sinh vien thanh cong"]);
         } else {
             echo json_encode(["error" => "Xoa that bai"]);

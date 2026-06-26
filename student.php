@@ -1,253 +1,243 @@
 <?php
 session_start();
-include("librarydb.php");
-
 if(!isset($_SESSION['username'])){
     header("Location: login.php");
     exit();
 }
-
-$msg = "";
-$msg_type = ""; 
-
-// thêm
-if(isset($_POST['insert'])){
-    $id = $_POST['id'];
-    $name = $_POST['name'];
-    $gender = $_POST['gender'];
-    $birthday = $_POST['birthday'];
-    $class = $_POST['class'];
-    $email = $_POST['email'];
-    $address = $_POST['address'];
-
-    if(empty($id) || empty($name) || empty($email)){
-        $msg = "Các trường MSSV, Họ tên và Email không được để trống!";
-        $msg_type = "error";
-    } else {
-        $check = $conn->prepare("SELECT studentid FROM student WHERE studentid=?");
-        $check->bind_param("s", $id);
-        $check->execute();
-        if($check->get_result()->num_rows > 0){
-            $msg = "Mã số sinh viên này đã tồn tại!";
-            $msg_type = "error";
-        } else {
-            $stmt = $conn->prepare("INSERT INTO student (studentid, studentname, gender, birthday, class, email, address) VALUES(?,?,?,?,?,?,?)");
-            $stmt->bind_param("sssssss", $id, $name, $gender, $birthday, $class, $email, $address);
-            if($stmt->execute()){
-                $log_detail = "Đã thêm sinh viên mới: $name (MSSV: $id)";
-                $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'THÊM', ?, NOW())");
-                $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
-                $log_stmt->execute();
-                header("Location: student.php?status=inserted");
-                exit();
-            }
-        }
-    }
-}
-
-// sửa
-if(isset($_POST['update'])){
-    $id = $_POST['id'];
-    $name = $_POST['name'];
-    $gender = $_POST['gender'];
-    $birthday = $_POST['birthday'];
-    $class = $_POST['class'];
-    $email = $_POST['email'];
-    $address = $_POST['address'];
-
-    $stmt = $conn->prepare("UPDATE student SET studentname=?, gender=?, birthday=?, class=?, email=?, address=? WHERE studentid=?");
-    $stmt->bind_param("sssssss", $name, $gender, $birthday, $class, $email, $address, $id);
-    if($stmt->execute()){
-        $log_detail = "Đã cập nhật thông tin sinh viên MSSV: $id";
-        $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'SỬA', ?, NOW())");
-        $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
-        $log_stmt->execute();
-        header("Location: student.php?status=updated");
-        exit();
-    }
-}
-
-// xóa
-if(isset($_GET['delete'])){
-    $id = $_GET['delete'];
-    $stmt = $conn->prepare("DELETE FROM student WHERE studentid=?");
-    $stmt->bind_param("s", $id);
-    if($stmt->execute()){
-        $log_detail = "Đã xóa hồ sơ sinh viên MSSV: $id";
-        $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'XÓA', ?, NOW())");
-        $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
-        $log_stmt->execute();
-        header("Location: student.php?status=deleted");
-        exit();
-    }
-}
-
-if(isset($_GET['status'])){
-    if($_GET['status'] == 'inserted'){ $msg = "Đã thêm sinh viên mới thành công!"; $msg_type = "success"; }
-    if($_GET['status'] == 'deleted'){ $msg = "Đã xóa hồ sơ thành công!"; $msg_type = "success"; }
-    if($_GET['status'] == 'updated'){ $msg = "Đã cập nhật thông tin thành công!"; $msg_type = "success"; }
-}
-
-// tìm kiếm 
-$search = $_GET['search'] ?? "";
-if($search != ""){
-    $query = "SELECT * FROM student WHERE studentid LIKE ? OR studentname LIKE ? OR class LIKE ?";
-    $param = "%$search%";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("sss", $param, $param, $param);
-    $stmt->execute();
-    $result = $stmt->get_result();
-} else {
-    $result = $conn->query("SELECT * FROM student ORDER BY studentid DESC");
-}
-
-// lấy dữ liệu
-$edit = null;
-if(isset($_GET['edit'])){
-    $id = $_GET['edit'];
-    $stmt = $conn->prepare("SELECT * FROM student WHERE studentid=?");
-    $stmt->bind_param("s", $id);
-    $stmt->execute();
-    $edit = $stmt->get_result()->fetch_assoc();
-}
 ?>
- 
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Sinh viên | Library System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>QUAN LY SINH VIEN </title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #0f172a; color: #f1f5f9; padding: 40px 20px; line-height: 1.6; }
-        .container { max-width: 1200px; margin: 0 auto; }
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'VT323', monospace; 
+        }
         
-        .nav-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .btn-back { text-decoration: none; color: #94a3b8; font-size: 14px; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
-        .btn-back:hover { color: #3b82f6; }
+        body { 
+            background-color: #000000; 
+            color: #00FF00; 
+            padding: 25px; 
+            font-size: 22px;
+            position: relative;
+            min-height: 100vh;
+        }
 
-        .card { background: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 30px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        h1 { font-size: 26px; margin-bottom: 10px; color: #fff; }
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 999;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
 
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px; }
-        .input-group label { display: block; font-size: 13px; font-weight: 600; color: #94a3b8; margin-bottom: 8px; }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: #000000; 
+            padding: 25px;
+            border: 4px double #00FF00; 
+            box-shadow: 6px 6px 0px #003300;
+        }
+        
+        .nav-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding-bottom: 15px;
+            border-bottom: 4px double #00FF00;
+            margin-bottom: 25px; 
+        }
+        .btn-back { 
+            text-decoration: none; 
+            color: #FFFF00; 
+        }
+        .btn-back:hover { 
+            color: #00FFFF;
+            text-shadow: 0 0 5px #00FFFF; 
+        }
+
+        h1 { font-size: 38px; font-weight: bold; color: #FFFF00; margin-bottom: 5px; text-shadow: 2px 2px #FF0000; }
+        .sub-title { color: #00FFFF; margin-bottom: 25px; font-size: 18px; text-transform: uppercase; }
+
+        .section-title {
+            font-size: 24px;
+            color: #FFFF00;
+            padding: 5px 10px;
+            background: #001100;
+            border: 2px solid #00FF00;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .form-container {
+            background: #000000;
+            border: 3px solid #00FF00;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 4px 4px 0px #002200;
+        }
+
+        .form-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); 
+            gap: 15px; 
+            margin-bottom: 15px; 
+        }
+        .input-group label { 
+            display: block; 
+            font-size: 18px; 
+            color: #00FFFF; 
+            margin-bottom: 5px; 
+        }
         
         input, select { 
             width: 100%; 
-            background: #0f172a; 
-            border: 1px solid #475569; 
-            padding: 12px; 
-            border-radius: 8px; 
-            color: #fff; 
-            outline: none; 
-            transition: 0.2s;
-            font-size: 14px;
+            background: #000000; 
+            border: 2px solid #00FF00; 
+            padding: 8px 12px; 
+            color: #00FF00; 
+            outline: none;
+            font-size: 22px;
         }
-        input[type="date"] { color-scheme: dark; }
-        input:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        input:focus, select:focus { 
+            border-color: #FFFF00;
+            background: #001100;
+        }
         
-        .btn { padding: 12px 24px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-        .btn-submit { background: #3b82f6; color: white; }
-        .btn-submit:hover { background: #2563eb; transform: translateY(-1px); }
-        .btn-edit { background: #eab308; color: #000; }
-        .btn-edit:hover { background: #ca8a04; }
+        .btn { 
+            padding: 8px 20px; 
+            border: 2px dashed #000000; 
+            font-weight: bold; 
+            font-size: 20px;
+            cursor: pointer; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px; 
+            text-transform: uppercase;
+        }
+        .btn-submit { background: #00FF00; color: #000000; }
+        .btn-submit:hover { background: #FFFF00; }
+        .btn-edit { background: #FF00FF; color: #000000; } 
+        .btn-edit:hover { background: #FFFF00; }
 
-        .search-container { margin-bottom: 25px; position: relative; }
-        .search-container input { padding-left: 45px; background: #1e293b; border-radius: 50px; }
-        .search-container i { position: absolute; left: 18px; top: 15px; color: #64748b; }
+    
+        .search-container { margin-bottom: 25px; position: relative; max-width: 400px; }
+        .search-container input { padding-left: 35px; background: #000000; }
+        .search-container i { position: absolute; left: 12px; top: 14px; color: #00FF00; font-size: 16px; }
 
-        .table-wrap { overflow-x: auto; background: #1e293b; border-radius: 12px; border: 1px solid #334155; }
-        table { width: 100%; border-collapse: collapse; min-width: 1000px; }
-        th { text-align: left; padding: 15px; background: rgba(255,255,255,0.05); font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
-        td { padding: 15px; border-bottom: 1px solid #334155; font-size: 14px; color: #cbd5e1; }
-        tr:hover { background: rgba(255,255,255,0.02); }
         
-        .msg { padding: 15px; border-radius: 8px; margin-bottom: 25px; text-align: center; font-weight: 600; animation: fadeIn 0.3s ease-in; }
-        .success { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
-        .error { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid #f87171; }
+        .table-wrap { overflow-x: auto; border: 3px solid #00FF00; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; min-width: 900px; background: #000000; }
+        th { 
+            text-align: left; 
+            padding: 12px 10px; 
+            background: #002200;
+            font-size: 18px; 
+            color: #FFFF00; 
+            font-weight: bold;
+            border-bottom: 3px solid #00FF00;
+        }
+        td { padding: 12px 10px; border-bottom: 1px dashed #004400; font-size: 20px; color: #00FF00; }
+        tr:hover { background: #001100; } 
+        
+      
+        .class-badge { 
+            background: #002200; 
+            color: #00FFFF; 
+            padding: 2px 6px; 
+            border: 1px solid #00FFFF; 
+            font-size: 16px; 
+        }
+
+    
+        .msg { padding: 12px; margin-bottom: 20px; text-align: center; font-weight: bold; display: none; text-transform: uppercase; }
+        .success { background: #000000; color: #00FF00; border: 2px dashed #00FF00; }
+        .error { background: #000000; color: #FF00FF; border: 2px dashed #FF00FF; }
 
         .address-col { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="nav-bar">
-        <a href="index.php" class="btn-back"><i class="fa fa-arrow-left"></i> Quay về trang chủ</a>
-        <div style="font-size: 14px; color: #94a3b8">
-            Thủ thư: <b style="color: #fff"><?php echo htmlspecialchars($_SESSION['username']); ?></b>
+        <a href="index.php" class="btn-back"><i class="fa fa-arrow-left"></i> [ QUAY VE TRANG CHU ]</a>
+        <div style="color: #00FFFF">
+            THU THU: <strong style="color: #FFFF00"><?php echo strtoupper(htmlspecialchars($_SESSION['username'])); ?></strong>
         </div>
     </div>
 
-    <h1>Hồ sơ Sinh viên</h1>
-    <p style="color: #64748b; margin-bottom: 30px;">Quản lý thông tin chi tiết và danh sách sinh viên thư viện.</p>
+    <h1>HO SO SINH VIEN</h1>
+    <p class="sub-title">HE THONG QUAN LY THONG TIN CHI TIET THANH VIEN THU VIEN</p>
 
-    <?php if($msg != ""): ?>
-        <div class="msg <?php echo $msg_type; ?>"><?php echo $msg; ?></div>
-    <?php endif; ?>
+    <div id="alert-msg" class="msg"></div>
 
-    <div class="card">
-        <h3 style="margin-bottom: 20px; font-size: 16px; color: #3b82f6;">
-            <i class="fa <?php echo $edit ? 'fa-user-pen' : 'fa-user-plus'; ?>"></i>
-            <?php echo $edit ? "Cập nhật thông tin: " . $edit['studentid'] : "Đăng ký sinh viên mới"; ?>
-        </h3>
-        <form method="post">
+    <div class="form-container">
+        <div class="section-title" id="form-title">
+            <i class="fa fa-user-plus"></i> ĐĂNG KÝ SINH VIÊN MỚI
+        </div>
+        
+        <form id="studentForm">
+            <input type="hidden" id="action_mode" value="insert">
             <div class="form-grid">
                 <div class="input-group">
-                    <label>Mã sinh viên (MSSV)</label>
-                    <input type="text" name="id" placeholder="VD: 123456" value="<?php echo $edit['studentid'] ?? ''; ?>" <?php echo $edit ? 'readonly style="opacity:0.6; cursor:not-allowed;"' : ''; ?> required>
+                    <label>> MÃ SINH VIÊN (MSSV):</label>
+                    <input type="text" id="studentid" placeholder="VD: 123456" required autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Họ và Tên</label>
-                    <input type="text" name="name" placeholder="Nguyễn Văn A" value="<?php echo $edit['studentname'] ?? ''; ?>" required>
+                    <label>> HỌ VÀ TÊN:</label>
+                    <input type="text" id="studentname" placeholder="Nguyen Van A" required autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Giới tính</label>
-                    <select name="gender">
-                        <option value="Nam" <?php if(($edit['gender'] ?? '')=="Nam") echo "selected"; ?>>Nam</option>
-                        <option value="Nữ" <?php if(($edit['gender'] ?? '')=="Nữ") echo "selected"; ?>>Nữ</option>
-                        <option value="Khác" <?php if(($edit['gender'] ?? '')=="Khác") echo "selected"; ?>>Khác</option>
+                    <label>> GIỚI TÍNH:</label>
+                    <select id="gender">
+                        <option value="Nam">Nam</option>
+                        <option value="Nữ">Nữ</option>
+                        <option value="Khác">Khác</option>
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>Ngày sinh</label>
-                    <input type="date" name="birthday" value="<?php echo $edit['birthday'] ?? ''; ?>">
+                    <label>> NGÀY SINH:</label>
+                    <input type="date" id="birthday">
                 </div>
                 <div class="input-group">
-                    <label>Lớp</label>
-                    <input type="text" name="class" placeholder="VD: 74DCTT22" value="<?php echo $edit['class'] ?? ''; ?>">
+                    <label>> LỚP:</label>
+                    <input type="text" id="class" placeholder="VD: 74DCTT22" autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Email</label>
-                    <input type="email" name="email" placeholder="example@mail.com" value="<?php echo $edit['email'] ?? ''; ?>" required>
+                    <label>> EMAIL:</label>
+                    <input type="email" id="email" placeholder="example@mail.com" required autocomplete="off">
                 </div>
             </div>
-            <div class="input-group" style="margin-bottom: 25px;">
-                <label>Địa chỉ thường trú</label>
-                <input type="text" name="address" placeholder="Số nhà, đường, phường/xã, quận/huyện..." value="<?php echo $edit['address'] ?? ''; ?>">
+            <div class="input-group" style="margin-bottom: 15px;">
+                <label>> ĐỊA CHỈ THƯỜNG TRÚ:</label>
+                <input type="text" id="address" placeholder="So nha, ten duong, tinh thanh..." autocomplete="off">
             </div>
 
-            <div style="text-align: right; border-top: 1px solid #334155; padding-top: 20px;">
-                <?php if($edit): ?>
-                    <a href="student.php" style="color: #94a3b8; margin-right: 20px; text-decoration: none; font-size: 14px;">Hủy bỏ</a>
-                    <button type="submit" name="update" class="btn btn-edit"><i class="fa fa-save"></i> Lưu cập nhật</button>
-                <?php else: ?>
-                    <button type="submit" name="insert" class="btn btn-submit"><i class="fa fa-plus"></i> Thêm sinh viên</button>
-                <?php endif; ?>
+            <div style="text-align: right; padding-top: 15px;">
+                <button type="button" id="btn-cancel" style="color: #FF00FF; margin-right: 20px; font-size: 20px; background:none; border:none; display:none; cursor:pointer; text-decoration: underline;">[ HUY BO ]</button>
+                <button type="submit" id="btn-submit" class="btn btn-submit"><i class="fa fa-plus"></i> THEM SINH VIEN</button>
             </div>
         </form>
     </div>
 
+    <div class="section-title"><i class="fa fa-list"></i> DANH SÁCH SINH VIÊN HIỆN TẠI</div>
+    
     <div class="search-container">
-        <form method="get">
-            <i class="fa fa-search"></i>
-            <input type="text" name="search" placeholder="Tìm kiếm theo mã, tên hoặc lớp..." value="<?php echo htmlspecialchars($search); ?>">
-        </form>
+        <i class="fa fa-search"></i>
+        <input type="text" id="search" placeholder="Tim kiem theo ten hoac ma..." autocomplete="off">
     </div>
 
     <div class="table-wrap">
@@ -255,43 +245,175 @@ if(isset($_GET['edit'])){
             <thead>
                 <tr>
                     <th>MSSV</th>
-                    <th>Họ và Tên</th>
-                    <th>Giới tính</th>
-                    <th>Ngày sinh</th>
-                    <th>Lớp</th>
-                    <th>Email</th>
-                    <th>Địa chỉ</th>
-                    <th style="text-align: center;">Thao tác</th>
+                    <th>HỌ VÀ TÊN</th>
+                    <th>GIỚI TÍNH</th>
+                    <th>NGÀY SÌNH</th>
+                    <th>LỚP</th>
+                    <th>EMAIL</th>
+                    <th>ĐỊA CHỈ</th>
+                    <th style="text-align: center;">THAO TÁC</th>
                 </tr>
             </thead>
-            <tbody>
-                <?php if($result->num_rows > 0): ?>
-                    <?php while($row = $result->fetch_assoc()){ ?>
-                    <tr>
-                        <td><b style="color: #3b82f6;"><?php echo $row['studentid']; ?></b></td>
-                        <td style="color: #fff; font-weight: 600;"><?php echo $row['studentname']; ?></td>
-                        <td><?php echo $row['gender']; ?></td>
-                        <td>
-                            <?php echo (!empty($row['birthday']) && $row['birthday'] != '0000-00-00') ? date('d/m/Y', strtotime($row['birthday'])) : '---'; ?>
-                        </td>
-                        <td><span style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; padding: 2px 8px; border-radius: 4px; font-size: 12px;"><?php echo $row['class']; ?></span></td>
-                        <td><?php echo $row['email']; ?></td>
-                        <td class="address-col" title="<?php echo $row['address']; ?>"><?php echo $row['address']; ?></td>
-                        <td style="text-align: center;">
-                            <a href="?edit=<?php echo $row['studentid']; ?>" style="color: #eab308; margin-right: 15px;" title="Sửa"><i class="fa fa-pen-to-square"></i></a>
-                            <a href="?delete=<?php echo $row['studentid']; ?>" style="color: #f87171;" onclick="return confirm('Bạn có chắc chắn muốn xóa sinh viên này khỏi hệ thống?')" title="Xóa"><i class="fa fa-trash"></i></a>
-                        </td>
-                    </tr>
-                    <?php } ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="8" style="text-align: center; padding: 30px; color: #64748b;">Không tìm thấy dữ liệu sinh viên nào.</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
+            <tbody id="table-body">
+                </tbody>
         </table>
     </div>
 </div>
 
+<script>
+const apiUrl = 'student_api.php';
+
+function loadStudents(searchName = '') {
+    let url = apiUrl;
+    if(searchName) {
+        url += `?studentname=${encodeURIComponent(searchName)}`;
+    }
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            
+            if(data.length === 0 || data.message) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: #FF00FF;">! KHONG TIM THAY DU LIEU PHU HOP !</td></tr>`;
+                return;
+            }
+
+            data.forEach(sv => {
+                let dateStr = '---';
+                if(sv.birthday && sv.birthday !== '0000-00-00') {
+                    const d = new Date(sv.birthday);
+                    dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong style="color: #FFFF00;">${sv.studentid}</strong></td>
+                        <td style="color: #00FF00; font-weight: bold;">${sv.studentname}</td>
+                        <td>${sv.gender}</td>
+                        <td>${dateStr}</td>
+                        <td><span class="class-badge">${sv.class}</span></td>
+                        <td>${sv.email}</td>
+                        <td class="address-col" title="${sv.address || ''}">${sv.address || ''}</td>
+                        <td style="text-align: center;">
+                            <a href="#" onclick="editStudent('${sv.studentid}')" style="color: #FFFF00; margin-right: 15px;" title="Sửa"><i class="fa fa-pen-to-square"></i></a>
+                            <a href="#" onclick="deleteStudent('${sv.studentid}')" style="color: #FF00FF;" title="Xóa"><i class="fa fa-trash"></i></a>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+}
+
+window.onload = () => loadStudents();
+
+document.getElementById('search').addEventListener('input', (e) => {
+    loadStudents(e.target.value);
+});
+
+document.getElementById('studentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const mode = document.getElementById('action_mode').value;
+    const studentData = {
+        studentid: document.getElementById('studentid').value,
+        studentname: document.getElementById('studentname').value,
+        gender: document.getElementById('gender').value,
+        birthday: document.getElementById('birthday').value,
+        class: document.getElementById('class').value,
+        email: document.getElementById('email').value,
+        address: document.getElementById('address').value
+    };
+
+    const method = (mode === 'insert') ? 'POST' : 'PUT';
+
+    fetch(apiUrl, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(studentData)
+    })
+    .then(res => res.json())
+    .then(resData => {
+        if(resData.error) {
+            showAlert("! LOI: " + resData.error, 'error');
+        } else {
+            showAlert(">> SUCCESS: " + (resData.message || 'Thao tac thanh cong!'), 'success');
+            resetForm();
+            loadStudents();
+        }
+    });
+});
+
+function deleteStudent(id) {
+    if(confirm('BAN CO CHAC CHAN MUON XOA SINH VIEN NAY KHOI HE THONG?')) {
+        fetch(`${apiUrl}?studentid=${id}`, {
+            method: 'DELETE'
+        })
+        .then(res => res.json())
+        .then(resData => {
+            if(resData.error) {
+                showAlert("! LOI: " + resData.error, 'error');
+            } else {
+                showAlert(">> DELETED: XOA DU LIEU THANH CONG!", 'success');
+                loadStudents();
+            }
+        });
+    }
+}
+
+function editStudent(id) {
+    fetch(`${apiUrl}?studentid=${id}`)
+        .then(res => res.json())
+        .then(sv => {
+            if(sv.message) return;
+            
+            document.getElementById('action_mode').value = 'update';
+            document.getElementById('studentid').value = sv.studentid;
+            document.getElementById('studentid').disabled = true;
+            document.getElementById('studentid').style.background = '#001100';
+            document.getElementById('studentid').style.cursor = 'not-allowed';
+            document.getElementById('studentid').style.borderColor = '#FF00FF';
+            
+            document.getElementById('studentname').value = sv.studentname;
+            document.getElementById('gender').value = sv.gender;
+            document.getElementById('birthday').value = sv.birthday;
+            document.getElementById('class').value = sv.class;
+            document.getElementById('email').value = sv.email;
+            document.getElementById('address').value = sv.address;
+
+            document.getElementById('form-title').innerHTML = `<i class="fa fa-user-pen"></i> CAP NHAT THONG TIN: ${sv.studentid}`;
+            const submitBtn = document.getElementById('btn-submit');
+            submitBtn.className = 'btn btn-edit';
+            submitBtn.innerHTML = `<i class="fa fa-save"></i> LUU CAP NHAT`;
+            document.getElementById('btn-cancel').style.display = 'inline-block';
+        });
+}
+
+function resetForm() {
+    document.getElementById('studentForm').reset();
+    document.getElementById('action_mode').value = 'insert';
+    document.getElementById('studentid').disabled = false;
+    document.getElementById('studentid').style.background = '#000000';
+    document.getElementById('studentid').style.cursor = 'text';
+    document.getElementById('studentid').style.borderColor = '#00FF00';
+    
+    document.getElementById('form-title').innerHTML = `<i class="fa fa-user-plus"></i> ĐĂNG KÝ SINH VIÊN MỚI`;
+    const submitBtn = document.getElementById('btn-submit');
+    submitBtn.className = 'btn btn-submit';
+    submitBtn.innerHTML = `<i class="fa fa-plus"></i> THEM SINH VIEN`;
+    document.getElementById('btn-cancel').style.display = 'none';
+}
+
+document.getElementById('btn-cancel').addEventListener('click', resetForm);
+
+function showAlert(text, type) {
+    const alertBox = document.getElementById('alert-msg');
+    alertBox.innerHTML = text;
+    alertBox.className = `msg ${type}`;
+    alertBox.style.display = 'block';
+    setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+}
+</script>
 </body>
 </html>

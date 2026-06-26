@@ -1,285 +1,421 @@
 <?php
 session_start();
-include("librarydb.php");
-
 if(!isset($_SESSION['username'])){
     header("Location: login.php");
     exit();
 }
-
-$msg = "";
-$msg_type = "";
-
-// mượn sách 
-if(isset($_POST['borrow'])){
-    $borrowid = trim($_POST['borrowid']);
-    $studentid = trim($_POST['studentid']);
-    $bookid = trim($_POST['bookid']);
-    $date = $_POST['date_borrowed'];
-
-    $check = $conn->prepare("SELECT borrowid FROM borrow WHERE borrowid=?");
-    $check->bind_param("s", $borrowid);
-    $check->execute();
-    if($check->get_result()->num_rows > 0){
-        $msg = "Lỗi: Mã lượt mượn này đã tồn tại!"; $msg_type = "error";
-    } else {
-        $s_stmt = $conn->prepare("SELECT studentname FROM student WHERE studentid=?");
-        $s_stmt->bind_param("s", $studentid);
-        $s_stmt->execute();
-        $student_data = $s_stmt->get_result()->fetch_assoc();
-
-        $b_stmt = $conn->prepare("SELECT bookname, available FROM book WHERE bookid=?");
-        $b_stmt->bind_param("s", $bookid);
-        $b_stmt->execute();
-        $book_data = $b_stmt->get_result()->fetch_assoc();
-
-        if(!$student_data){
-            $msg = "Lỗi: Mã sinh viên không tồn tại!"; $msg_type = "error";
-        } elseif(!$book_data){
-            $msg = "Lỗi: Mã sách không hợp lệ!"; $msg_type = "error";
-        } elseif($book_data['available'] <= 0){
-            $msg = "Sách này hiện đã hết trong kho!"; $msg_type = "error";
-        } else {
-            $status = "BORROWING";
-            $ins = $conn->prepare("INSERT INTO borrow (borrowid, studentid, bookid, date_borrowed, status) VALUES(?,?,?,?,?)");
-            $ins->bind_param("sssss", $borrowid, $studentid, $bookid, $date, $status);
-            
-            if($ins->execute()){
-                $up_book = $conn->prepare("UPDATE book SET available = available - 1 WHERE bookid=?");
-                $up_book->bind_param("s", $bookid);
-                $up_book->execute();
-                $log_detail = "Cho SV " . $student_data['studentname'] . " mượn cuốn: " . $book_data['bookname'] . " (Mã mượn: $borrowid)";
-                $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'MƯỢN SÁCH', ?, NOW())");
-                $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
-                $log_stmt->execute();
-
-                $msg = "Đã thực hiện cho mượn thành công!"; $msg_type = "success";
-            }
-        }
-    }
-}
-
-// trả sách 
-if(isset($_POST['return'])){
-    $borrowid = trim($_POST['borrow_id_return']);
-    $date_return = $_POST['date_return'];
-    $q = $conn->prepare("SELECT b.bookid, b.status, s.studentname, bk.bookname FROM borrow b 
-                         JOIN student s ON b.studentid = s.studentid 
-                         JOIN book bk ON b.bookid = bk.bookid 
-                         WHERE b.borrowid=?");
-    $q->bind_param("s", $borrowid);
-    $q->execute();
-    $data = $q->get_result()->fetch_assoc();
-
-    if(!$data){
-        $msg = "Không tìm thấy mã giao dịch!"; $msg_type = "error";
-    } elseif($data['status'] == "RETURNED"){
-        $msg = "Sách này đã được trả trước đó!"; $msg_type = "error";
-    } else {
-        $status_new = "RETURNED";
-        $up = $conn->prepare("UPDATE borrow SET date_return=?, status=? WHERE borrowid=?");
-        $up->bind_param("sss", $date_return, $status_new, $borrowid);
-        
-        if($up->execute()){
-            $up_book = $conn->prepare("UPDATE book SET available = available + 1 WHERE bookid=?");
-            $up_book->bind_param("s", $data['bookid']);
-            $up_book->execute();
-
-            $log_detail = "Nhận lại sách '" . $data['bookname'] . "' từ SV " . $data['studentname'] . " (Mã mượn: $borrowid)";
-            $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'TRẢ SÁCH', ?, NOW())");
-            $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
-            $log_stmt->execute();
-
-            $msg = "Đã nhận lại sách và cập nhật kho!"; $msg_type = "success";
-        }
-    }
-}
-
-// Xóa lịch sử mượn
-if(isset($_GET['delete'])){
-    $id = $_GET['delete'];
-    
-    $q = $conn->prepare("SELECT bookid, status, studentid FROM borrow WHERE borrowid=?");
-    $q->bind_param("s", $id);
-    $q->execute();
-    $data = $q->get_result()->fetch_assoc();
-
-    if($data) {
-        if($data['status'] == 'BORROWING') {
-            $up_book = $conn->prepare("UPDATE book SET available = available + 1 WHERE bookid=?");
-            $up_book->bind_param("s", $data['bookid']);
-            $up_book->execute();
-        }
-        
-        $del = $conn->prepare("DELETE FROM borrow WHERE borrowid=?");
-        $del->bind_param("s", $id);
-        if($del->execute()){
-            $log_detail = "Đã xóa lịch sử mượn mã $id của SV " . $data['studentid'];
-            $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'XÓA MƯỢN', ?, NOW())");
-            $log_stmt->bind_param("ss", $_SESSION['username'], $log_detail);
-            $log_stmt->execute();
-        }
-    }
-    header("Location: borrow.php?status=deleted");
-    exit();
-}
-$search = $_GET['search'] ?? "";
-$query = "SELECT b.*, s.studentname, bk.bookname FROM borrow b 
-          JOIN student s ON b.studentid = s.studentid 
-          JOIN book bk ON b.bookid = bk.bookid";
-
-if($search != ""){
-    $query .= " WHERE b.borrowid LIKE ? OR s.studentname LIKE ? OR bk.bookname LIKE ?";
-    $stmt = $conn->prepare($query . " ORDER BY b.date_borrowed DESC");
-    $param = "%$search%";
-    $stmt->bind_param("sss", $param, $param, $param);
-    $stmt->execute();
-    $result = $stmt->get_result();
-} else {
-    $result = $conn->query($query . " ORDER BY CASE WHEN b.status = 'BORROWING' THEN 1 ELSE 2 END, b.date_borrowed DESC");
-}
-
-$return_id = $_GET['fill_return'] ?? "";
 ?>
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Quản lý mượn trả - Library System</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUAN LY MUON TRA </title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #0f172a; color: #f1f5f9; padding: 30px; }
-        .container { max-width: 1100px; margin: 0 auto; }
-        .nav-bar { display: flex; justify-content: space-between; margin-bottom: 25px; }
-        .btn-back { text-decoration: none; color: #94a3b8; transition: 0.3s; }
-        .btn-back:hover { color: #3b82f6; }
-        .form-flex { display: flex; gap: 20px; margin-bottom: 30px; }
-        .card { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; flex: 1; }
-        h3 { font-size: 18px; margin-bottom: 20px; color: #3b82f6; display: flex; align-items: center; gap: 10px; }
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'VT323', monospace; 
+        }
+        
+        body { 
+            background-color: #000000; 
+            color: #00FF00; 
+            padding: 25px; 
+            font-size: 22px;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 999;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: #000000; 
+            padding: 25px;
+            border: 4px double #00FF00; 
+            box-shadow: 6px 6px 0px #003300;
+        }
+        
+        .nav-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding-bottom: 15px;
+            border-bottom: 4px double #00FF00;
+            margin-bottom: 25px; 
+        }
+        .btn-back { 
+            text-decoration: none; 
+            color: #FFFF00; 
+        }
+        .btn-back:hover { 
+            color: #00FFFF;
+            text-shadow: 0 0 5px #00FFFF; 
+        }
+
+        h1 { font-size: 38px; font-weight: bold; color: #FFFF00; margin-bottom: 25px; text-shadow: 2px 2px #FF0000; }
+        
+        .form-flex { 
+            display: flex; 
+            gap: 20px; 
+            margin-bottom: 30px; 
+        }
+        @media (max-width: 768px) {
+            .form-flex { flex-direction: column; }
+        }
+
+        .card { 
+            background: #000000; 
+            padding: 20px; 
+            border: 3px solid #00FF00; 
+            flex: 1; 
+            box-shadow: 4px 4px 0px #002200;
+        }
+        .card-return {
+            border-color: #00FFFF; 
+            box-shadow: 4px 4px 0px #002222;
+        }
+        
+        .section-title {
+            font-size: 24px;
+            color: #FFFF00;
+            padding: 5px 10px;
+            background: #001100;
+            border: 2px solid #00FF00;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .title-green { 
+            border-color: #00FFFF; 
+            color: #FFFF00;
+            background: #001111;
+        }
+
         .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 5px; }
-        input { width: 100%; background: #0f172a; border: 1px solid #475569; padding: 10px; border-radius: 6px; color: #fff; outline: none; }
-        input:focus { border-color: #3b82f6; }
-        input[type="date"] { color-scheme: dark; }
-        .btn { padding: 12px; border-radius: 6px; border: none; font-weight: 600; cursor: pointer; width: 100%; transition: 0.2s; }
-        .btn-blue { background: #3b82f6; color: #white; }
-        .btn-green { background: #10b981; color: white; }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .table-wrap { background: #1e293b; border-radius: 12px; border: 1px solid #334155; overflow: hidden; }
-        table { width: 100%; border-collapse: collapse; }
-        th { text-align: left; padding: 15px; background: rgba(255,255,255,0.03); color: #94a3b8; font-size: 13px; }
-        td { padding: 15px; border-bottom: 1px solid #334155; }
-        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
-        .status-brw { background: rgba(234, 179, 8, 0.1); color: #eab308; }
-        .status-ret { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-        .msg { padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; }
-        .success { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
-        .error { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid #f87171; }
-        .search-box { width: 100%; background: #1e293b; border: 1px solid #334155; padding: 12px 40px; border-radius: 8px; color: #fff; margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 18px; color: #00FFFF; margin-bottom: 5px; }
+        .card-return .input-group label { color: #FF00FF; } 
+        
+        input { 
+            width: 100%; 
+            background: #000000; 
+            border: 2px solid #00FF00; 
+            padding: 8px 12px; 
+            color: #00FF00; 
+            outline: none;
+            font-size: 22px;
+        }
+        input:focus { border-color: #FFFF00; background: #001100; }
+        .card-return input { border-color: #00FFFF; color: #00FFFF; }
+        .card-return input:focus { border-color: #FFFF00; background: #001111; }
+
+        .btn { 
+            padding: 10px; 
+            border: 2px dashed #000000; 
+            font-weight: bold; 
+            font-size: 20px;
+            cursor: pointer; 
+            width: 100%; 
+            text-transform: uppercase;
+        }
+        .btn-blue { background: #00FF00; color: #000000; }
+        .btn-blue:hover { background: #FFFF00; }
+        .btn-green { background: #00FFFF; color: #000000; }
+        .btn-green:hover { background: #FFFF00; }
+
+        .search-container { margin-bottom: 25px; position: relative; max-width: 400px; }
+        .search-container input { padding-left: 35px; background: #000000; border-color: #00FF00;}
+        .search-container i { position: absolute; left: 12px; top: 14px; color: #00FF00; font-size: 16px; }
+
+        .table-wrap { overflow-x: auto; border: 3px solid #00FF00; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; min-width: 950px; background: #000000; }
+        th { 
+            text-align: left; 
+            padding: 12px 10px; 
+            background: #002200; 
+            font-size: 18px; 
+            color: #FFFF00; 
+            font-weight: bold;
+            border-bottom: 3px solid #00FF00;
+        }
+        td { padding: 12px 10px; border-bottom: 1px dashed #004400; font-size: 20px; color: #00FF00; }
+        tr:hover { background: #001100; } 
+        
+        .badge { padding: 3px 8px; border: 1px solid transparent; font-size: 16px; font-weight: bold; display: inline-block; }
+        .status-brw { background: #000000; color: #FFFF00; border-color: #FFFF00; text-shadow: 0 0 3px #FFFF00; } 
+        .status-ret { background: #002200; color: #00FF00; border-color: #00FF00; } 
+        
+        .msg { padding: 12px; margin-bottom: 20px; text-align: center; font-weight: bold; display: none; text-transform: uppercase; }
+        .success { background: #000000; color: #00FF00; border: 2px dashed #00FF00; }
+        .error { background: #000000; color: #FF00FF; border: 2px dashed #FF00FF; }
+
+        .txt-id { color: #00FFFF; font-weight: bold; }
+        .txt-sub { font-size: 16px; color: #008800; margin-top: 2px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="nav-bar">
-        <a href="index.php" class="btn-back"><i class="fa fa-arrow-left"></i> Quay về trang chủ</a>
-        <span>Thủ thư: <b><?php echo $_SESSION['username']; ?></b></span>
+        <a href="index.php" class="btn-back"><i class="fa fa-arrow-left"></i> [ QUAY VE TRANG CHU ]</a>
+        <div style="color: #00FFFF">
+            <i class="fa fa-user-circle"></i> THU THU: <strong style="color: #FFFF00"><?php echo strtoupper(htmlspecialchars($_SESSION['username'])); ?></strong>
+        </div>
     </div>
 
-    <?php if($msg != ""): ?>
-        <div class="msg <?php echo $msg_type; ?>"><?php echo $msg; ?></div>
-    <?php endif; ?>
+    <h1><i class="fa fa-exchange-alt" style="color: #FFFF00;"></i> QUAN LY MUON - TRA SACH</h1>
+
+    <div id="alert-msg" class="msg"></div>
 
     <div class="form-flex">
         <div class="card">
-            <h3><i class="fa fa-plus-circle"></i> Cho mượn sách</h3>
-            <form method="post">
+            <div class="section-title"><i class="fa fa-plus-circle"></i> CHO MƯỢN SÁCH</div>
+            <form id="borrowForm">
                 <div class="input-group">
-                    <label>Mã mượn sách</label>
-                    <input type="text" name="borrowid" placeholder="VD: 111222" required>
+                    <label>> MÃ LƯỢT MƯỢN SÁCH:</label>
+                    <input type="text" id="borrowid" placeholder="Ví dụ: M001, M002..." required autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Mã Sinh viên</label>
-                    <input type="text" name="studentid" placeholder="Nhập mã SV..." required>
+                    <label>> MÃ SINH VIÊN:</label>
+                    <input type="text" id="studentid" placeholder="Nhập mã số SV..." required autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Mã Sách</label>
-                    <input type="text" name="bookid" placeholder="Nhập mã sách..." required>
+                    <label>> MÃ SÁCH:</label>
+                    <input type="text" id="bookid" placeholder="Nhập mã định danh sách..." required autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Ngày mượn</label>
-                    <input type="date" name="date_borrowed" value="<?php echo date('Y-m-d'); ?>">
+                    <label>> NGÀY MƯỢN ĐẦU KỲ:</label>
+                    <input type="date" id="date_borrowed" value="<?php echo date('Y-m-d'); ?>">
                 </div>
-                <button type="submit" name="borrow" class="btn btn-blue">Xác nhận cho mượn</button>
+                <button type="submit" class="btn btn-blue">XÁC NHẬN CHO MƯỢN</button>
             </form>
         </div>
 
-        <div class="card">
-            <h3><i class="fa fa-undo"></i> Nhận trả sách</h3>
-            <form method="post">
+        <div class="card card-return">
+            <div class="section-title title-green"><i class="fa fa-undo"></i> NHẬN TRẢ SÁCH</div>
+            <form id="returnForm">
                 <div class="input-group">
-                    <label>Mã trả sách</label>
-                    <input type="text" name="borrow_id_return" value="<?php echo $return_id; ?>" placeholder="Nhập mã cần trả..." required>
+                    <label>> MÃ LƯỢT CẦN TRẢ:</label>
+                    <input type="text" id="borrow_id_return" placeholder="Nhập mã lượt mượn để trả sách..." required autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Ngày trả thực tế</label>
-                    <input type="date" name="date_return" value="<?php echo date('Y-m-d'); ?>">
+                    <label>> NGÀY TRẢ THỰC TẾ:</label>
+                    <input type="date" id="date_return" value="<?php echo date('Y-m-d'); ?>">
                 </div>
-                <div style="height: 148px;"></div>
-                <button type="submit" name="return" class="btn btn-green">Xác nhận trả sách</button>
+                <div style="height: 78px;" class="desktop-spacer"></div>
+                <button type="submit" class="btn btn-green">XÁC NHẬN NHẬN TRẢ</button>
             </form>
         </div>
     </div>
 
-    <form method="get" style="position: relative;">
-        <i class="fa fa-search" style="position: absolute; left: 15px; top: 15px; color: #64748b;"></i>
-        <input type="text" name="search" class="search-box" placeholder="Tìm theo tên SV, sách hoặc mã mượn..." value="<?php echo htmlspecialchars($search); ?>">
-    </form>
+    <div class="section-title"><i class="fa fa-list"></i> NHẬT KÝ MƯỢN TRẢ HỆ THỐNG</div>
+    
+    <div class="search-container">
+        <i class="fa fa-search"></i>
+        <input type="text" id="search" placeholder="Tim theo ten sinh vien, sach hoac ma muon..." autocomplete="off">
+    </div>
 
     <div class="table-wrap">
         <table>
             <thead>
                 <tr>
-                    <th>Mã Mượn</th>
-                    <th>Sinh viên</th>
-                    <th>Tên Sách</th>
-                    <th>Ngày mượn</th>
-                    <th>Ngày trả</th>
-                    <th>Trạng thái</th>
-                    <th>Thao tác</th>
+                    <th>MÃ MƯỢN</th>
+                    <th>SINH VIÊN</th>
+                    <th>TÊN SÁCH</th>
+                    <th>NGÀY MƯỢN</th>
+                    <th>NGÀY TRẢ</th>
+                    <th>TRẠNG THÁI</th>
+                    <th style="text-align: center;">THAO TÁC</th>
                 </tr>
             </thead>
-            <tbody>
-                <?php while($row = $result->fetch_assoc()){ ?>
-                <tr>
-                    <td><b style="color: #3b82f6;"><?php echo $row['borrowid']; ?></b></td>
-                    <td>
-                        <div><?php echo $row['studentname']; ?></div>
-                        <small style="color: #64748b;"><?php echo $row['studentid']; ?></small>
-                    </td>
-                    <td><?php echo $row['bookname']; ?></td>
-                    <td><?php echo date('d/m/Y', strtotime($row['date_borrowed'])); ?></td>
-                    <td><?php echo ($row['date_return']) ? date('d/m/Y', strtotime($row['date_return'])) : "---"; ?></td>
-                    <td>
-                        <span class="badge <?php echo $row['status']=='BORROWING' ? 'status-brw' : 'status-ret'; ?>">
-                            <?php echo $row['status']=='BORROWING' ? 'Đang mượn' : 'Đã trả'; ?>
-                        </span>
-                    </td>
-                    <td>
-                        <?php if($row['status'] == 'BORROWING'): ?>
-                            <a href="?fill_return=<?php echo $row['borrowid']; ?>" style="color: #eab308; margin-right: 15px;" title="Trả nhanh"><i class="fa fa-share-square"></i></a>
-                        <?php endif; ?>
-                        <a href="?delete=<?php echo $row['borrowid']; ?>" style="color: #f87171;" onclick="return confirm('Cảnh báo: Xóa đơn này sẽ hồi lại số lượng sách nếu chưa trả. Bạn chắc chứ?')"><i class="fa fa-trash"></i></a>
-                    </td>
-                </tr>
-                <?php } ?>
+            <tbody id="table-body">
             </tbody>
         </table>
     </div>
 </div>
 
+<script>
+const apiUrl = 'borrow_api.php';
+let localBorrowData = [];
+
+function loadBorrows(searchKey = '') {
+    let url = apiUrl;
+    if(searchKey) {
+        url += `?key=${encodeURIComponent(searchKey)}`;
+    }
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            
+            if(!data || data.length === 0 || data.message === "No records found") {
+                localBorrowData = [];
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 30px; color: #FF00FF;">! KHONG TIM THAY LICH SU MUON TRA NAO PHU HOP !</td></tr>`;
+                return;
+            }
+
+            localBorrowData = data;
+
+            data.forEach(row => {
+                const dB = new Date(row.date_borrowed);
+                const dateBorrowedStr = `${String(dB.getDate()).padStart(2, '0')}/${String(dB.getMonth()+1).padStart(2, '0')}/${dB.getFullYear()}`;
+                
+                let dateReturnStr = "---";
+                if(row.date_return && row.date_return !== '0000-00-00') {
+                    const dR = new Date(row.date_return);
+                    dateReturnStr = `${String(dR.getDate()).padStart(2, '0')}/${String(dR.getMonth()+1).padStart(2, '0')}/${dR.getFullYear()}`;
+                }
+
+                const isBorrowing = row.status === 'BORROWING';
+                const badgeClass = isBorrowing ? 'status-brw' : 'status-ret';
+                const badgeText = isBorrowing ? 'ĐANG MƯỢN' : 'ĐÃ TRẢ';
+
+                const actionBtnReturn = isBorrowing ? 
+                    `<a href="#" onclick="quickReturn('${row.borrowid}')" style="color: #FFFF00; margin-right: 15px;" title="Trả nhanh"><i class="fa fa-share-square"></i></a>` : '';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><span class="txt-id">${row.borrowid}</span></td>
+                        <td>
+                            <div style="color: #00FF00; font-weight: bold;">${row.studentname}</div>
+                            <div class="txt-sub">Mã SV: ${row.studentid}</div>
+                        </td>
+                        <td><strong style="color: #FFFF00;">${row.bookname}</strong><br><span class="txt-sub">Mã sách: ${row.bookid}</span></td>
+                        <td>${dateBorrowedStr}</td>
+                        <td>${dateReturnStr}</td>
+                        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+                        <td style="text-align: center;">
+                            ${actionBtnReturn}
+                            <a href="#" onclick="deleteBorrow('${row.borrowid}')" style="color: #FF00FF;" title="Xóa bản ghi"><i class="fa fa-trash"></i></a>
+                        </td>
+                    </tr>
+                `;
+            });
+        });
+}
+
+window.onload = () => loadBorrows();
+
+document.getElementById('search').addEventListener('input', (e) => {
+    loadBorrows(e.target.value);
+});
+
+document.getElementById('borrowForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const borrowData = {
+        borrowid: document.getElementById('borrowid').value,
+        studentid: document.getElementById('studentid').value,
+        bookid: document.getElementById('bookid').value,
+        date_borrowed: document.getElementById('date_borrowed').value
+    };
+
+    fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(borrowData)
+    })
+    .then(res => res.json())
+    .then(resData => {
+        if(resData.error) {
+            showAlert("! LOI: " + resData.error, 'error');
+        } else {
+            showAlert(">> SUCCESS: THUC HIEN CHO MUON THANH CONG!", 'success');
+            document.getElementById('borrowForm').reset();
+            document.getElementById('date_borrowed').value = new Date().toISOString().split('T')[0];
+            loadBorrows();
+        }
+    });
+});
+
+document.getElementById('returnForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const currentBorrowId = document.getElementById('borrow_id_return').value;
+    const inputReturnDate = document.getElementById('date_return').value;
+
+    const matchedRecord = localBorrowData.find(item => item.borrowid === currentBorrowId);
+
+    if (matchedRecord) {
+        const borrowDate = matchedRecord.date_borrowed; 
+        
+        if (inputReturnDate < borrowDate) {
+            const d = new Date(borrowDate);
+            const formattedBorrowDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
+            showAlert(`! LOI LOGIC: NGAY TRA PHAI LON HON HOAC BANG NGAY MUON (${formattedBorrowDate}) !`, 'error');
+            return; 
+        }
+    }
+
+    const returnData = {
+        borrowid: currentBorrowId,
+        date_return: inputReturnDate
+    };
+
+    fetch(apiUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(returnData)
+    })
+    .then(res => res.json())
+    .then(resData => {
+        if(resData.error) {
+            showAlert("! LOI: " + resData.error, 'error');
+        } else {
+            showAlert(">> SUCCESS: HE THONG DA NHAN LAI SACH THANH CONG!", 'success');
+            document.getElementById('returnForm').reset();
+            document.getElementById('date_return').value = new Date().toISOString().split('T')[0];
+            loadBorrows();
+        }
+    });
+});
+
+function quickReturn(id) {
+    document.getElementById('borrow_id_return').value = id;
+    document.getElementById('borrow_id_return').focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function deleteBorrow(id) {
+    if(confirm('CANH BAO: XOA DON NAY SE HOI LAI SO LUONG SACH TRONG KHO NEU TRANG THAI LA CHUA TRA. BAN CHAC CHU?')) {
+        fetch(`${apiUrl}?borrowid=${id}`, {
+            method: 'DELETE'
+        })
+        .then(res => res.json())
+        .then(resData => {
+            if(resData.error) {
+                showAlert("! LOI: " + resData.error, 'error');
+            } else {
+                showAlert(">> DELETED: XOA BAN GHI MUON TRA THANH CONG!", 'success');
+                loadBorrows();
+            }
+        });
+    }
+}
+
+function showAlert(text, type) {
+    const alertBox = document.getElementById('alert-msg');
+    alertBox.innerHTML = text;
+    alertBox.className = `msg ${type}`;
+    alertBox.style.display = 'block';
+    setTimeout(() => { alertBox.style.display = 'none'; }, 4500);
+}
+</script>
 </body>
 </html>

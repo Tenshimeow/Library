@@ -1,134 +1,268 @@
 <?php
 session_start();
-include("librarydb.php");
-
-// Kiểm tra đăng nhập
 if(!isset($_SESSION['username'])){
     header("Location: login.php");
     exit();
 }
-
 $username = $_SESSION['username'];
-$role = $_SESSION['role']; // lấy role
-$message = "";
-$status = ""; 
-
-if (isset($_POST['change'])) {
-    $old = trim($_POST['old_password']);
-    $new = trim($_POST['new_password']);
-    $confirm = trim($_POST['confirm_password']);
-
-    if(empty($old) || empty($new) || empty($confirm)){
-        $message = "Vui lòng nhập đầy đủ các trường!";
-        $status = "error";
-    } elseif($new !== $confirm){
-        $message = "Mật khẩu xác nhận không khớp!";
-        $status = "error";
-    } elseif(strlen($new) < 6){
-        $message = "Mật khẩu mới phải từ 6 ký tự trở lên!";
-        $status = "error";
-    } else {
-
-        // 🔥 FIX: kiểm tra theo username + role
-        $sql = "SELECT password FROM librarian WHERE username = ? AND role = ?";
-        $stmt = $conn->prepare($sql);
-        
-        if ($stmt) {
-            $stmt->bind_param("ss", $username, $role);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            
-            if($row = $result->fetch_assoc()){
-                
-                // So sánh mật khẩu cũ
-                if($old === $row['password']){
-                    
-                    // Update mật khẩu
-                    $update_sql = "UPDATE librarian SET password = ? WHERE username = ? AND role = ?";
-                    $update_stmt = $conn->prepare($update_sql);
-                    $update_stmt->bind_param("sss", $new, $username, $role);
-                    
-                    if($update_stmt->execute()){
-                        $message = "Chúc mừng! Tài khoản <b>$username</b> đã đổi mật khẩu thành công.";
-                        $status = "success";
-                    } else {
-                        $message = "Lỗi cập nhật: " . $conn->error;
-                        $status = "error";
-                    }
-                } else {
-                    $message = "Mật khẩu cũ không chính xác!";
-                    $status = "error";
-                }
-            } else {
-                $message = "Lỗi: Không tìm thấy tài khoản '$username' trong hệ thống!";
-                $status = "error";
-            }
-        } else {
-            $message = "Lỗi truy vấn SQL: " . $conn->error;
-            $status = "error";
-        }
-    }
-}
+$role = $_SESSION['role']; 
 ?>
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Đổi mật khẩu | Hệ thống thư viện</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOI MAT KHAU </title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0f172a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: #1e293b; padding: 30px; border-radius: 12px; width: 380px; border: 1px solid #334155; box-shadow: 0 15px 30px rgba(0,0,0,0.4); }
-        .header-info { background: #312e81; padding: 12px; border-radius: 8px; margin-bottom: 25px; text-align: center; border-left: 4px solid #818cf8; }
-        h2 { margin: 0 0 15px 0; font-size: 22px; text-align: center; color: #818cf8; letter-spacing: 0.5px; }
+        /* --- STYLE GIAO DIỆN ĐỒ HỌA GAME RETRO CHỨC NĂNG (CHANGE PASSWORD) --- */
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'VT323', monospace; 
+        }
+        
+        body { 
+            background-color: #000000; /* Nền đen tivi cổ điển */
+            color: #00FF00; /* Chữ màu xanh lá neon */
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            font-size: 22px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Hiệu ứng màn hình CRT (Sọc quét ngang tivi cổ điển) */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 999;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
+        
+        /* KHỐI HỘP TRUNG TÂM PHONG CÁCH COMMAND PANEL */
+        .card { 
+            background: #000000; 
+            padding: 35px 30px; 
+            border: 4px double #00FF00; /* Viền đôi xanh neon */
+            width: 100%;
+            max-width: 440px; 
+            box-shadow: 6px 6px 0px #003300; 
+            position: relative;
+        }
+        
+        /* KHU VỰC THÔNG TIN TÀI KHOẢN ĐANG ĐĂNG NHẬP */
+        .header-info { 
+            background: #001100; 
+            padding: 12px; 
+            border: 2px dashed #00FF00; 
+            margin-bottom: 25px; 
+            text-align: center; 
+            font-size: 18px;
+            color: #00FFFF; /* Màu xanh Cyan nổi bật */
+        }
+        
+        h2 { 
+            margin-bottom: 20px; 
+            font-size: 36px; 
+            text-align: center; 
+            color: #FFFF00; /* Màu vàng retro */
+            font-weight: bold;
+            text-shadow: 2px 2px #FF0000;
+            text-transform: uppercase;
+        }
+        
         .form-group { margin-bottom: 15px; }
-        label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; font-weight: bold; }
-        input { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 6px; box-sizing: border-box; outline: none; transition: 0.2s; }
-        input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2); }
-        .btn-save { width: 100%; padding: 12px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; margin-top: 10px; transition: 0.3s; }
-        .btn-save:hover { background: #4338ca; }
-        .alert { padding: 12px; border-radius: 6px; margin-bottom: 20px; text-align: center; font-size: 13px; font-weight: 500; border: 1px solid; }
-        .alert-error { background: rgba(220, 38, 38, 0.2); color: #fca5a5; border-color: #991b1b; }
-        .alert-success { background: rgba(16, 185, 129, 0.2); color: #a7f3d0; border-color: #065f46; }
-        .back-link { display: block; text-align: center; margin-top: 20px; color: #64748b; text-decoration: none; font-size: 13px; }
-        .back-link:hover { color: #94a3b8; }
+        
+        label { 
+            display: block; 
+            font-size: 18px; 
+            color: #00FFFF; 
+            margin-bottom: 6px; 
+            font-weight: bold;
+        }
+        
+        /* Ô INPUT NHẬP LIỆU DÒNG LỆNH */
+        input { 
+            width: 100%; 
+            padding: 10px 12px; 
+            background: #000000; 
+            border: 2px solid #00FF00; 
+            color: #00FF00; 
+            outline: none; 
+            font-size: 22px;
+        }
+        
+        input:focus { 
+            border-color: #FFFF00; 
+            background: #001100;
+        }
+        
+        /* NÚT LỆNH THỰC THI (XÁC NHẬN) */
+        .btn-save { 
+            width: 100%; 
+            padding: 12px; 
+            background: #00FF00; 
+            color: #000000; 
+            border: none; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 22px; 
+            margin-top: 15px; 
+            text-transform: uppercase;
+        }
+        
+        .btn-save:hover:not(:disabled) { 
+            background: #FFFF00; 
+        }
+        .btn-save:disabled {
+            background: #004400;
+            color: #008800;
+            cursor: not-allowed;
+        }
+        
+        /* BẢNG CẢNH BÁO / THÔNG BÁO CHỚP SÁNG TERMINAL */
+        .alert { 
+            padding: 12px; 
+            margin-bottom: 20px; 
+            text-align: center; 
+            font-size: 18px; 
+            font-weight: bold; 
+            display: none;
+            text-transform: uppercase;
+        }
+        .alert-error { 
+            background: #000000; 
+            color: #FF00FF; /* Hồng cánh sen cảnh báo lỗi */
+            border: 2px dashed #FF00FF; 
+        }
+        .alert-success { 
+            background: #000000; 
+            color: #00FF00; 
+            border: 2px dashed #00FF00; 
+        }
+        
+        /* LIÊN KẾT ĐIỀU HƯỚNG QUAY LẠI */
+        .back-link { 
+            display: block; 
+            text-align: center; 
+            margin-top: 25px; 
+            color: #FFFF00; 
+            text-decoration: none; 
+            font-size: 18px; 
+        }
+        .back-link:hover { 
+            color: #00FFFF;
+            text-shadow: 0 0 5px #00FFFF; 
+        }
     </style>
 </head>
 <body>
 
 <div class="card">
     <div class="header-info">
-        <i class="fa fa-id-badge"></i> Xin chào: <b><?php echo htmlspecialchars($username); ?></b> (<?php echo htmlspecialchars($role); ?>)
+        <i class="fa fa-user-circle"></i> USER: <strong style="color: #FFFF00"><?php echo strtoupper(htmlspecialchars($username)); ?></strong> [<?php echo strtoupper(htmlspecialchars($role)); ?>]
     </div>
 
-    <h2><i class="fa fa-sync-alt"></i> Cập nhật mật khẩu</h2>
+    <h2><i class="fa fa-key"></i> DOI MAT KHAU</h2>
 
-    <?php if($message): ?>
-        <div class="alert alert-<?php echo $status; ?>">
-            <i class="fa <?php echo ($status == 'success') ? 'fa-check-circle' : 'fa-exclamation-circle'; ?>"></i>
-            <?php echo $message; ?>
-        </div>
-    <?php endif; ?>
+    <div id="alertBox" class="alert"></div>
 
-    <form method="POST">
+    <form id="changePassForm">
+        <input type="hidden" id="api_username" value="<?php echo htmlspecialchars($username); ?>">
+
         <div class="form-group">
-            <label>MẬT KHẨU HIỆN TẠI</label>
-            <input type="password" name="old_password" required placeholder="VD: 999999">
+            <label>> MAT KHAU HIEN TAI:</label>
+            <input type="password" id="old_password" required placeholder="Nhap mat khau dang dung" autocomplete="off">
         </div>
         <div class="form-group">
-            <label>MẬT KHẨU MỚI</label>
-            <input type="password" name="new_password" required placeholder="VD:123456">
+            <label>> MAT KHAU MOI:</label>
+            <input type="password" id="new_password" required placeholder="Toi thieu 6 ky tu" autocomplete="off">
         </div>
         <div class="form-group">
-            <label>XÁC NHẬN MẬT KHẨU MỚI</label>
-            <input type="password" name="confirm_password" required placeholder="VD:123456">
+            <label>> XAC NHAN MAT KHAU MOI:</label>
+            <input type="password" id="confirm_password" required placeholder="Nhap lai mat khau moi" autocomplete="off">
         </div>
-        <button type="submit" name="change" class="btn-save">XÁC NHẬN THAY ĐỔI</button>
+        <button type="submit" id="btnSave" class="btn-save">XAC NHAN THAY DOI</button>
     </form>
 
-    <a href="index.php" class="back-link"><i class="fa fa-chevron-left"></i> Quay lại trang chủ</a>
+    <a href="index.php" class="back-link"><i class="fa fa-chevron-left"></i> [ QUAY LAI TRANG CHU ]</a>
 </div>
+
+<script>
+    const changePassForm = document.getElementById('changePassForm');
+    const alertBox = document.getElementById('alertBox');
+    const btnSave = document.getElementById('btnSave');
+
+    changePassForm.onsubmit = async (e) => {
+        e.preventDefault();
+        alertBox.style.display = 'none';
+
+        const oldPass = document.getElementById('old_password').value;
+        const newPass = document.getElementById('new_password').value;
+        const confirmPass = document.getElementById('confirm_password').value;
+
+        // Kiểm tra độ dài mật khẩu mới
+        if (newPass.length < 6) {
+            showAlert('! LOI: MAT KHAU MOI PHAI TU 6 KY TU TRO LEN !', 'alert-error');
+            return;
+        }
+
+        // Kiểm tra trùng khớp mật khẩu
+        if (newPass !== confirmPass) {
+            showAlert('! LOI: MAT KHAU XAC NHAN KHONG TRUNG KHOP !', 'alert-error');
+            return;
+        }
+
+        // Chuyển trạng thái Button khi đang xử lý luồng bất đồng bộ
+        btnSave.innerText = 'LOADING...';
+        btnSave.disabled = true;
+
+        const requestData = {
+            username: document.getElementById('api_username').value,
+            old_password: oldPass,
+            new_password: newPass,
+            confirm_password: confirmPass
+        };
+
+        try {
+            const response = await fetch('change_password_api.php', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestData)
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                showAlert('>> SUCCESS: ' + (data.message || 'CAP NHAT MAT KHAU THANH CONG!'), 'alert-success');
+                changePassForm.reset();
+            } else {
+                showAlert('! LOI: ' + (data.message || 'KHONG THE THAY DOI MAT KHAU!'), 'alert-error');
+            }
+        } catch (err) {
+            showAlert('! LOI: KHONG THE KET NOI DEN HE THONG MAY CHU !', 'alert-error');
+        } finally {
+            btnSave.innerText = 'XAC NHAN THAY DOI';
+            btnSave.disabled = false;
+        }
+    };
+
+    // Hàm gọi hiển thị thông báo tiến trình lệnh
+    function showAlert(text, className) {
+        alertBox.innerText = text;
+        alertBox.className = `alert ${className}`;
+        alertBox.style.display = 'block';
+    }
+</script>
 
 </body>
 </html>

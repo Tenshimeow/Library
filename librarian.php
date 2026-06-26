@@ -1,289 +1,474 @@
 <?php
 session_start();
-include("librarydb.php");
-
 if(!isset($_SESSION['username'])){
     header("Location: login.php");
     exit();
 }
 
-$msg = "";
-$msg_type = "";
-
-if(isset($_POST['add'])){
-    $id = $_POST['librarianid'];
-    $name = $_POST['librarianname'];
-    $email = $_POST['email'];
-    $phone = $_POST['phone'];
-    $user = $_POST['username'];
-    $pass = $_POST['password'];
-    $role = $_POST['role'];
-    $status = $_POST['status'];
-    $address = $_POST['address'];
-
-    $check = $conn->prepare("SELECT librarianid FROM librarian WHERE librarianid=?");
-    $check->bind_param("s", $id);
-    $check->execute();
-    if($check->get_result()->num_rows > 0){
-        $msg = "ID nhân viên này đã tồn tại!"; 
-        $msg_type = "error";
-    } else {
-        $stmt = $conn->prepare("INSERT INTO librarian (librarianid, librarianname, email, address, phone, username, password, role, status) VALUES (?,?,?,?,?,?,?,?,?)");
-        $stmt->bind_param("sssssssss", $id, $name, $email, $address, $phone, $user, $pass, $role, $status);
-        if($stmt->execute()){
-            $msg = "Đã đăng ký thủ thư mới thành công!"; 
-            $msg_type = "success";
-        } else {
-            $msg = "Lỗi: " . $stmt->error;
-            $msg_type = "error";
-        }
-    }
-}
-
-if(isset($_POST['update'])){
-    $id = $_POST['librarianid'];
-    $stmt = $conn->prepare("UPDATE librarian SET librarianname=?, email=?, address=?, phone=?, username=?, password=?, role=?, status=? WHERE librarianid=?");
-    $stmt->bind_param("sssssssss", $_POST['librarianname'], $_POST['email'], $_POST['address'], $_POST['phone'], $_POST['username'], $_POST['password'], $_POST['role'], $_POST['status'], $id);
-    if($stmt->execute()){
-        $msg = "Cập nhật hồ sơ nhân sự thành công!"; 
-        $msg_type = "success";
-    } else {
-        $msg = "Lỗi cập nhật!";
-        $msg_type = "error";
-    }
-}
-
-if(isset($_GET['delete'])){
-    $id = $_GET['delete'];
-    $stmt = $conn->prepare("UPDATE librarian SET status='INACTIVE' WHERE librarianid=?");
-    $stmt->bind_param("s", $id);
-    $stmt->execute();
-    header("Location: librarian.php?msg=deactivated");
-    exit();
-}
-
-if(isset($_GET['msg']) && $_GET['msg'] == 'deactivated'){
-    $msg = "Đã tạm khóa tài khoản nhân sự!";
-    $msg_type = "success";
-}
-
-$edit_data = null;
-if(isset($_GET['edit'])){
-    $id = $_GET['edit'];
-    $stmt = $conn->prepare("SELECT * FROM librarian WHERE librarianid=?");
-    $stmt->bind_param("s", $id);
-    $stmt->execute();
-    $edit_data = $stmt->get_result()->fetch_assoc();
-}
-
-$search = $_GET['search'] ?? "";
-if($search != ""){
-    $query = "SELECT * FROM librarian WHERE librarianname LIKE ? OR librarianid LIKE ? ORDER BY status ASC";
-    $stmt = $conn->prepare($query);
-    $param = "%$search%";
-    $stmt->bind_param("ss", $param, $param);
-    $stmt->execute();
-    $result_list = $stmt->get_result();
-} else {
-    $result_list = $conn->query("SELECT * FROM librarian ORDER BY status ASC, librarianid DESC");
-}
-
-$suggest_res = $conn->query("SELECT librarianid, librarianname FROM librarian");
 ?>
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Hệ thống Thủ thư</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>QUAN LY THU THU </title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', sans-serif; background: #0f172a; color: #f1f5f9; padding: 40px 20px; }
-        .container { max-width: 1100px; margin: 0 auto; }
-        .nav-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .btn-back { text-decoration: none; color: #94a3b8; font-size: 14px; transition: 0.2s; }
-        .btn-back:hover { color: #3b82f6; }
-        .card { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 30px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-        h1 { font-size: 26px; margin-bottom: 20px; color: #fff; font-weight: 700; }
-        h3 { font-size: 16px; margin-bottom: 20px; color: #3b82f6; text-transform: uppercase; letter-spacing: 1px; }
+        /* --- STYLE GIAO DIỆN ĐỒ HỌA GAME RETRO CHỨC NĂNG VÀ HỆ THỐNG --- */
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'VT323', monospace; 
+        }
         
-        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
-        .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; font-size: 13px; font-weight: 600; color: #94a3b8; margin-bottom: 8px; }
-        input, select { width: 100%; background: #0f172a; border: 1px solid #475569; padding: 12px; border-radius: 8px; color: #fff; outline: none; font-size: 14px; transition: 0.3s; }
-        input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        body { 
+            background-color: #000000; /* Nền đen tivi cổ điển */
+            color: #00FF00; /* Chữ màu xanh lá neon */
+            padding: 20px; 
+            font-size: 22px;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* Hiệu ứng màn hình CRT (Sọc quét ngang tivi cổ điển) */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 999;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .container { 
+            max-width: 1140px; 
+            margin: 0 auto; 
+            background: #000000; 
+            padding: 30px;
+            border: 4px double #00FF00; /* Viền đôi xanh neon */
+            box-shadow: 6px 6px 0px #003300; 
+        }
         
-        .btn-row { display: flex; gap: 10px; margin-top: 10px; }
-        .btn { padding: 12px 25px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .btn-submit { background: #3b82f6; color: white; flex: 1; }
-        .btn-submit:hover { background: #2563eb; }
-        .btn-cancel { background: #334155; color: white; text-decoration: none; text-align: center; line-height: 1.5; padding: 12px 25px; }
+        /* THANH ĐIỀU HƯỚNG TRÊN CÙNG TRONG CONSOLE */
+        .nav-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding-bottom: 15px;
+            border-bottom: 4px double #00FF00;
+            margin-bottom: 25px; 
+        }
+        .btn-back { 
+            text-decoration: none; 
+            color: #FFFF00; 
+        }
+        .btn-back:hover { 
+            color: #00FFFF;
+            text-shadow: 0 0 5px #00FFFF; 
+        }
+
+        h1 { font-size: 38px; font-weight: bold; color: #FFFF00; margin-bottom: 25px; text-shadow: 2px 2px #FF0000; text-transform: uppercase;}
         
-        .search-container { margin-bottom: 20px; position: relative; }
-        .search-container input { padding-left: 40px; background: #1e293b; border-radius: 30px; border: 1px solid #334155; }
-        .search-container i { position: absolute; left: 15px; top: 15px; color: #64748b; }
+        /* TIÊU ĐỀ PHÂN ĐOẠN PHONG CÁCH COMMAND BOX */
+        .section-title {
+            font-size: 24px;
+            color: #FFFF00;
+            padding: 5px 10px;
+            background: #001100;
+            border: 2px solid #00FF00;
+            margin-bottom: 20px;
+            display: inline-block;
+            text-transform: uppercase;
+        }
+
+        .form-container {
+            background: #000000;
+            border: 3px solid #00FF00;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 4px 4px 0px #002200;
+        }
+
+        /* GRID NHẬP LIỆU PHẲNG TRÊN ĐỒ HỌA TERMINAL */
+        .form-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
+            gap: 15px; 
+            margin-bottom: 15px; 
+        }
+        .input-group label { 
+            display: block; 
+            font-size: 18px; 
+            color: #00FFFF; 
+            margin-bottom: 5px; 
+            font-weight: bold; 
+        }
         
-        .table-wrap { overflow-x: auto; background: #1e293b; border-radius: 12px; border: 1px solid #334155; }
-        table { width: 100%; border-collapse: collapse; min-width: 900px; }
-        th { text-align: left; padding: 15px; background: rgba(255,255,255,0.03); font-size: 13px; color: #94a3b8; text-transform: uppercase; }
-        td { padding: 15px; border-bottom: 1px solid #334155; font-size: 14px; vertical-align: middle; }
+        /* Ô NHẬP LIỆU DÒNG LỆNH CỔ ĐIỂN */
+        input, select { 
+            width: 100%; 
+            background: #000000; 
+            border: 2px solid #00FF00; 
+            padding: 8px 12px; 
+            color: #00FF00; 
+            outline: none;
+            font-size: 22px;
+        }
+        input:focus, select:focus { 
+            border-color: #FFFF00; 
+            background: #001100;
+        }
+        select option {
+            background: #000000;
+            color: #00FF00;
+        }
         
-        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-        .status-active { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-        .status-inactive { background: rgba(239, 68, 68, 0.1); color: #f87171; }
-        .role-badge { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+        .btn-row { display: flex; gap: 15px; margin-top: 15px; }
         
-        .msg { padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: 600; animation: fadeIn 0.5s; }
-        .success { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid #10b981; }
-        .error { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid #f87171; }
+        /* NÚT BẤM ĐIỀU KHIỂN HÀNH ĐỘNG GAME */
+        .btn { 
+            padding: 10px 20px; 
+            border: none; 
+            font-weight: bold; 
+            font-size: 20px;
+            cursor: pointer; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 8px; 
+            text-transform: uppercase;
+        }
+        .btn-submit { background: #00FF00; color: #000000; flex: 1; justify-content: center; }
+        .btn-submit:hover { background: #FFFF00; }
+        .btn-cancel { background: #000000; color: #FF00FF; border: 2px solid #FF00FF; }
+        .btn-cancel:hover { background: #220022; text-shadow: 0 0 5px #FF00FF; }
+
+        /* KHUNG TÌM KIẾM TỪ KHÓA BẤT ĐỒNG BỘ */
+        .search-container { margin-bottom: 25px; position: relative; max-width: 400px; }
+        .search-container input { padding-left: 35px; }
+        .search-container i { position: absolute; left: 12px; top: 14px; color: #00FF00; font-size: 16px; }
+
+        /* BẢNG DỮ LIỆU ĐỒ HỌA GRID LƯỚI TERMINAL */
+        .table-wrap { overflow-x: auto; border: 3px solid #00FF00; }
+        table { width: 100%; border-collapse: collapse; min-width: 950px; background: #000000; }
+        th { 
+            text-align: left; 
+            padding: 12px 10px; 
+            background: #002200; 
+            font-size: 18px; 
+            color: #FFFF00; 
+            font-weight: bold;
+            border-bottom: 3px solid #00FF00;
+            text-transform: uppercase;
+        }
+        td { padding: 12px 10px; border-bottom: 1px dashed #004400; font-size: 22px; color: #00FF00; }
+        tr:hover { background: #001100; } 
         
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        /* BADGES TRẠNG THÁI PHÂN QUYỀN VÀ HOẠT ĐỘNG */
+        .badge { padding: 2px 6px; border: 1px dashed; font-size: 16px; font-weight: bold; display: inline-block; text-transform: uppercase; }
+        .status-active { color: #00FF00; border-color: #00FF00; }
+        .status-inactive { color: #FF0000; border-color: #FF0000; }
+        .role-badge { color: #00FFFF; border-color: #00FFFF; }
+        
+        /* KHUNG HIỂN THỊ THÔNG BÁO FLASH */
+        .msg { padding: 12px; margin-bottom: 20px; text-align: center; font-weight: bold; display: none; text-transform: uppercase; }
+        .success { background: #000000; color: #00FF00; border: 2px dashed #00FF00; }
+        .error { background: #000000; color: #FF00FF; border: 2px dashed #FF00FF; }
+
+        .txt-id { color: #FFFF00; font-weight: bold; }
+        .txt-sub { font-size: 18px; color: #00FFFF; margin-top: 2px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="nav-bar">
-        <a href="index.php" class="btn-back"><i class="fa fa-arrow-left"></i> Quay về trang chủ</a>
-        <div style="font-size: 14px; color: #94a3b8">
-            Đang đăng nhập: <b style="color: #3b82f6"><?php echo $_SESSION['username']; ?></b>
+        <a href="index.php" class="btn-back"><i class="fa fa-arrow-left"></i> [ QUAY VE TRANG CHU ]</a>
+        <div style="color: #00FFFF">
+            <i class="fa fa-user-circle"></i> LOGGED IN: <strong style="color: #FFFF00"><?php echo strtoupper(htmlspecialchars($_SESSION['username'])); ?></strong>
         </div>
     </div>
 
-    <h1>Quản lý Nhân sự Thủ thư</h1>
+    <h1><i class="fa fa-users-cog" style="color: #FFFF00;"></i> QUAN LY NHAN SU THU THU</h1>
 
-    <?php if($msg != ""): ?>
-        <div class="msg <?php echo $msg_type; ?>"><?php echo $msg; ?></div>
-    <?php endif; ?>
+    <div id="alert-msg" class="msg"></div>
 
-    <div class="card">
-        <h3><i class="fa <?php echo $edit_data ? 'fa-user-edit' : 'fa-user-plus'; ?>"></i> 
-            <?php echo $edit_data ? 'Hiệu chỉnh thông tin' : 'Thêm thủ thư mới'; ?>
-        </h3>
-        <form method="POST">
+    <div class="form-container">
+        <div class="section-title" id="form-title">
+            <i class="fa fa-user-plus"></i> THEM THU THU MOI
+        </div>
+        
+        <form id="librarianForm">
+            <input type="hidden" id="action_mode" value="insert">
+            
             <div class="form-grid">
                 <div class="input-group">
-                    <label>Mã Thủ thư </label>
-                    <input type="text" name="librarianid" placeholder="VD: 001" value="<?php echo $edit_data['librarianid'] ?? ''; ?>" <?php echo $edit_data ? 'readonly' : 'required'; ?>>
+                    <label>> MA THU THU:</label>
+                    <input type="text" id="librarianid" placeholder="VD: 001" required autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Họ và Tên</label>
-                    <input type="text" name="librarianname" placeholder="Nguyễn Văn B" value="<?php echo $edit_data['librarianname'] ?? ''; ?>" required>
+                    <label>> HO VA TEN:</label>
+                    <input type="text" id="librarianname" placeholder="Nguyen Van B" required autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Email liên hệ</label>
-                    <input type="email" name="email" placeholder="example@library.com" value="<?php echo $edit_data['email'] ?? ''; ?>" required>
+                    <label>> EMAIL LIEN HE:</label>
+                    <input type="email" id="email" placeholder="example@library.com" required autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Số điện thoại</label>
-                    <input type="text" name="phone" placeholder="09xxx..." value="<?php echo $edit_data['phone'] ?? ''; ?>" required>
+                    <label>> SO DIEN THOAI:</label>
+                    <input type="text" id="phone" placeholder="09xxxx..." required autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Tên đăng nhập hệ thống</label>
-                    <input type="text" name="username" placeholder="user123" value="<?php echo $edit_data['username'] ?? ''; ?>" required>
+                    <label>> TEN DANG NHAP (USERNAME):</label>
+                    <input type="text" id="username" placeholder="user123" required autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Mật khẩu đăng nhập</label>
-                    <input type="text" name="password" placeholder="999999" value="<?php echo $edit_data['password'] ?? ''; ?>" required>
+                    <label>> MAT KHAU TRUY CAP:</label>
+                    <input type="text" id="password" placeholder="999999" required autocomplete="off">
                 </div>
                 <div class="input-group">
-                    <label>Phân quyền hệ thống</label>
-                    <select name="role">
-                        <option value="LIBRARIAN" <?php echo (isset($edit_data) && $edit_data['role']=='LIBRARIAN')?'selected':''; ?>>Thủ thư (Librarian)</option>
-                        <option value="ADMIN" <?php echo (isset($edit_data) && $edit_data['role']=='ADMIN')?'selected':''; ?>>Quản trị viên (Admin)</option>
+                    <label>> PHAN QUYEN HE THONG:</label>
+                    <select id="role">
+                        <option value="LIBRARIAN">THU THU (LIBRARIAN)</option>
+                        <option value="ADMIN">QUAN TRI VIEN (ADMIN)</option>
                     </select>
                 </div>
                 <div class="input-group">
-                    <label>Trạng thái tài khoản</label>
-                    <select name="status">
-                        <option value="ACTIVE" <?php echo (isset($edit_data) && $edit_data['status']=='ACTIVE')?'selected':''; ?>>Đang hoạt động</option>
-                        <option value="INACTIVE" <?php echo (isset($edit_data) && $edit_data['status']=='INACTIVE')?'selected':''; ?>>Tạm khóa</option>
+                    <label>> TRANG THAI TAI KHOAN:</label>
+                    <select id="status">
+                        <option value="ACTIVE">DANG HOAT DONG</option>
+                        <option value="INACTIVE">TAM KHOA</option>
                     </select>
                 </div>
-                <div class="input-group" style="grid-column: span 2;">
-                    <label>Địa chỉ thường trú</label>
-                    <input type="text" name="address" placeholder="Địa chỉ chi tiết..." value="<?php echo $edit_data['address'] ?? ''; ?>">
-                </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>> DIA CHI THUONG TRU:</label>
+                <input type="text" id="address" placeholder="Dia chi chi tiet so nha, ten duong..." autocomplete="off">
             </div>
 
             <div class="btn-row">
-                <button type="submit" name="<?php echo $edit_data ? 'update' : 'add'; ?>" class="btn btn-submit">
-                    <i class="fa fa-save"></i> <?php echo $edit_data ? 'Lưu thay đổi' : 'Xác nhận thêm mới'; ?>
+                <button type="submit" id="btn-submit" class="btn btn-submit">
+                    <i class="fa fa-save"></i> XAC NHAN THEM MOI
                 </button>
-                <?php if($edit_data): ?>
-                    <a href="librarian.php" class="btn btn-cancel">Hủy bỏ</a>
-                <?php endif; ?>
+                <button type="button" id="btn-cancel" class="btn btn-cancel" style="display: none;">[ HUY BO ]</button>
             </div>
         </form>
     </div>
 
+    <div class="section-title"><i class="fa fa-users"></i> DANH SACH DOI NGU NHAN SU</div>
+    
     <div class="search-container">
-        <form method="get">
-            <i class="fa fa-search"></i>
-            <input type="text" name="search" list="staff_hints" placeholder="Tìm kiếm theo tên hoặc mã nhân viên..." value="<?php echo htmlspecialchars($search); ?>">
-            <datalist id="staff_hints">
-                <?php while($s = $suggest_res->fetch_assoc()): ?>
-                    <option value="<?php echo $s['librarianid']; ?>"><?php echo $s['librarianname']; ?></option>
-                <?php endwhile; ?>
-            </datalist>
-        </form>
+        <i class="fa fa-search"></i>
+        <input type="text" id="search" placeholder="Tim kiem theo ten hoac ma nhan vien..." autocomplete="off">
     </div>
 
     <div class="table-wrap">
         <table>
             <thead>
                 <tr>
-                    <th>Nhân viên</th>
-                    <th>Liên hệ</th>
-                    <th>Tài khoản</th>
-                    <th>Mật khẩu</th>
-                    <th>Vai trò</th>
-                    <th>Trạng thái</th>
-                    <th style="text-align: right;">Thao tác</th>
+                    <th>NHAN VIEN</th>
+                    <th>LIEN HE</th>
+                    <th>TAI KHOAN</th>
+                    <th>MAT KHAU</th>
+                    <th>VAI TRO</th>
+                    <th>TRANG THAI</th>
+                    <th style="text-align: right;">THAO TAC</th>
                 </tr>
             </thead>
-            <tbody>
-                <?php if($result_list->num_rows > 0): ?>
-                    <?php while($row = $result_list->fetch_assoc()): ?>
-                    <tr>
-                        <td>
-                            <div style="font-weight: 700; color: #fff;"><?php echo $row['librarianname']; ?></div>
-                            <div style="font-size: 11px; color: #3b82f6; font-family: monospace;"><?php echo $row['librarianid']; ?></div>
-                        </td>
-                        <td>
-                            <div style="font-size: 13px;"><i class="fa fa-envelope" style="font-size: 10px; color: #64748b;"></i> <?php echo $row['email']; ?></div>
-                            <div style="font-size: 12px; color: #94a3b8;"><i class="fa fa-phone" style="font-size: 10px; color: #64748b;"></i> <?php echo $row['phone']; ?></div>
-                        </td>
-                        <td><code style="color: #e2e8f0; background: #0f172a; padding: 2px 6px; border-radius: 4px;"><?php echo $row['username']; ?></code></td>
-                        <td>
-                            <input type="password" value="<?php echo $row['password']; ?>" 
-                                   readonly 
-                                   style="background:none; border:none; color:#64748b; width:80px; cursor:pointer; font-family: password;"
-                                   onclick="this.type=(this.type=='password'?'text':'password')" 
-                                   title="Click để hiện/ẩn mật khẩu">
-                        </td>
-                        <td><span class="badge role-badge"><?php echo $row['role']; ?></span></td>
-                        <td>
-                            <span class="badge <?php echo $row['status']=='ACTIVE'?'status-active':'status-inactive'; ?>">
-                                <?php echo $row['status']=='ACTIVE'?'Hoạt động':'Đã khóa'; ?>
-                            </span>
-                        </td>
-                        <td style="text-align: right;">
-                            <a href="?edit=<?php echo $row['librarianid']; ?>" style="color: #3b82f6; margin-right: 15px; font-size: 18px;" title="Chỉnh sửa"><i class="fa fa-edit"></i></a>
-                            <a href="?delete=<?php echo $row['librarianid']; ?>" style="color: #f87171; font-size: 18px;" onclick="return confirm('Bạn có chắc chắn muốn khóa tài khoản này?')" title="Khóa tài khoản"><i class="fa fa-user-slash"></i></a>
-                        </td>
-                    </tr>
-                    <?php endwhile; ?>
-                <?php else: ?>
-                    <tr><td colspan="7" style="text-align:center; padding: 30px; color: #94a3b8;">Không tìm thấy dữ liệu phù hợp.</td></tr>
-                <?php endif; ?>
-            </tbody>
+            <tbody id="table-body">
+                </tbody>
         </table>
     </div>
 </div>
 
+<script>
+const apiUrl = 'librarian_api.php';
+
+// 1. HÀM LOAD DANH SÁCH NHÂN SỰ THỦ THƯ (GET)
+function loadLibrarians(searchKey = '') {
+    let url = apiUrl;
+    if(searchKey) {
+        url += `?key=${encodeURIComponent(searchKey)}`;
+    }
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            
+            if(!data || data.length === 0 || data.message === "No records found") {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: #FF00FF;">! KHONG TIM THAY DU LIEU PHU HOP !</td></tr>`;
+                return;
+            }
+
+            data.forEach(row => {
+                const isActive = row.status === 'ACTIVE';
+                const statusBadge = isActive ? 
+                    `<span class="badge status-active">HOAT DONG</span>` : 
+                    `<span class="badge status-inactive">DA KHOA</span>`;
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td>
+                            <div style="font-weight: bold; color: #ffffff;">${row.librarianname}</div>
+                            <div class="txt-id">#ID: ${row.librarianid}</div>
+                        </td>
+                        <td>
+                            <div style="font-size: 18px;"><i class="fa fa-envelope" style="font-size: 14px; color: #00FFFF;"></i> ${row.email}</div>
+                            <div class="txt-sub"><i class="fa fa-phone" style="font-size: 14px; color: #00FFFF;"></i> ${row.phone}</div>
+                        </td>
+                        <td><span style="color: #FFFF00;">${row.username}</span></td>
+                        <td>
+                            <input type="password" value="${row.password}" 
+                                   readonly 
+                                   style="background:none; border:none; color:#00FF00; width:100px; padding:0; cursor:pointer; font-size:22px;"
+                                   onclick="this.type=(this.type=='password'?'text':'password')" 
+                                   title="Click de hien/an mat khau">
+                        </td>
+                        <td><span class="badge role-badge">${row.role}</span></td>
+                        <td>${statusBadge}</td>
+                        <td style="text-align: right;">
+                            <a href="#" onclick="editLibrarian('${row.librarianid}')" style="color: #00FFFF; margin-right: 15px; font-size: 20px;" title="Chỉnh sửa"><i class="fa fa-edit"></i></a>
+                            <a href="#" onclick="deactivateLibrarian('${row.librarianid}')" style="color: #FF00FF; font-size: 20px;" title="Khóa tài khoản"><i class="fa fa-user-slash"></i></a>
+                        </td>
+                    </tr>
+                `;
+            });
+        })
+        .catch(err => {
+            console.error("Lỗi đồng bộ danh sách:", err);
+        });
+}
+
+// Chạy khởi tạo danh sách khi vừa load trang
+window.onload = () => loadLibrarians();
+
+// 2. TÌM KIẾM THEO TỪ KHÓA TRONG KHI GÕ (REALTIME SEARCH)
+document.getElementById('search').addEventListener('input', (e) => {
+    loadLibrarians(e.target.value);
+});
+
+// 3. XỬ LÝ LỆNH THÊM MỚI HOẶC SỬA HỒ SƠ (POST / PUT)
+document.getElementById('librarianForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const mode = document.getElementById('action_mode').value;
+    const staffData = {
+        librarianid: document.getElementById('librarianid').value,
+        librarianname: document.getElementById('librarianname').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+        role: document.getElementById('role').value,
+        status: document.getElementById('status').value,
+        address: document.getElementById('address').value
+    };
+
+    const method = (mode === 'insert') ? 'POST' : 'PUT';
+
+    fetch(apiUrl, {
+        method: method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(staffData)
+    })
+    .then(res => res.json())
+    .then(resData => {
+        if(resData.error) {
+            showAlert("! LOI: " + resData.error, 'error');
+        } else {
+            showAlert(resData.message || '>> SUCCESS: CAP NHAT CORE HE THONG THANH CONG!', 'success');
+            resetForm();
+            loadLibrarians();
+        }
+    })
+    .catch(err => {
+        showAlert("! LOI: BI CHAN KET NOI TRUY XUAT DU LIEU !", 'error');
+    });
+});
+
+// 4. XỬ LÝ TẠM KHÓA TRẠNG THÁI TÀI KHOẢN (DELETE CHUYỂN INACTIVE)
+function deactivateLibrarian(id) {
+    if(confirm(`CANH BAO: BAN CHAC CHAN MUON KHOA QUYEN TRUY CAP CUA THU THU MA CO DINH [${id}] KHOI CORE?`)) {
+        fetch(`${apiUrl}?librarianid=${id}`, {
+            method: 'DELETE'
+        })
+        .then(res => res.json())
+        .then(resData => {
+            if(resData.error) {
+                showAlert("! LOI: " + resData.error, 'error');
+            } else {
+                showAlert(">> DEACTIVATED: " + resData.message, 'success');
+                loadLibrarians();
+            }
+        })
+        .catch(err => {
+            showAlert("! LOI: LENH XOA BI MAT KET NOI !", 'error');
+        });
+    }
+}
+
+// 5. ĐỔ DỮ LIỆU CŨ LÊN FORM ĐỂ HIỆU CHỈNH (UPDATE MODE)
+function editLibrarian(id) {
+    fetch(`${apiUrl}?key=${id}`)
+        .then(res => res.json())
+        .then(list => {
+            if(!list || list.length === 0) return;
+            // Tìm chính xác bản ghi khớp với id khóa chính
+            const staff = list.find(item => item.librarianid === id) || list[0];
+            
+            document.getElementById('action_mode').value = 'update';
+            document.getElementById('librarianid').value = staff.librarianid;
+            document.getElementById('librarianid').disabled = true;
+            document.getElementById('librarianid').style.background = '#220000';
+            document.getElementById('librarianid').style.borderColor = '#FF00FF';
+            document.getElementById('librarianid').style.cursor = 'not-allowed';
+            
+            document.getElementById('librarianname').value = staff.librarianname;
+            document.getElementById('email').value = staff.email;
+            document.getElementById('phone').value = staff.phone;
+            document.getElementById('username').value = staff.username;
+            document.getElementById('password').value = staff.password;
+            document.getElementById('role').value = staff.role;
+            document.getElementById('status').value = staff.status;
+            document.getElementById('address').value = staff.address || '';
+
+            // Đổi tiêu đề form trạng thái hiệu chỉnh hệ thống
+            document.getElementById('form-title').innerHTML = `<i class="fa fa-user-edit" style="color:#FFFF00;"></i> HIEU CHINH HOSOTX: ${staff.librarianid}`;
+            const submitBtn = document.getElementById('btn-submit');
+            submitBtn.innerHTML = `<i class="fa fa-save"></i> LUU THAY DOI`;
+            document.getElementById('btn-cancel').style.display = 'inline-block';
+        });
+}
+
+// HÀM RESET KHÔI PHỤC FORM TRẠNG THÁI THÊM MỚI BAN ĐẦU
+function resetForm() {
+    document.getElementById('librarianForm').reset();
+    document.getElementById('action_mode').value = 'insert';
+    document.getElementById('librarianid').disabled = false;
+    document.getElementById('librarianid').style.background = '#000000';
+    document.getElementById('librarianid').style.borderColor = '#00FF00';
+    document.getElementById('librarianid').style.cursor = 'text';
+    document.getElementById('form-title').innerHTML = `<i class="fa fa-user-plus"></i> THEM THU THU MOI`;
+    document.getElementById('btn-submit').innerHTML = `<i class="fa fa-save"></i> XAC NHAN THEM MOI`;
+    document.getElementById('btn-cancel').style.display = 'none';
+}
+
+document.getElementById('btn-cancel').addEventListener('click', resetForm);
+
+// HÀM HIỂN THỊ THÔNG BÁO ALERT BOX TERMINAL PANEL
+function showAlert(text, type) {
+    const alertBox = document.getElementById('alert-msg');
+    alertBox.innerHTML = text;
+    alertBox.className = `msg ${type}`;
+    alertBox.style.display = 'block';
+    setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+}
+</script>
 </body>
 </html>

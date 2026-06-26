@@ -1,83 +1,62 @@
 <?php
 session_start();
-include("librarydb.php");
-
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_login'])) {
-    header('Content-Type: application/json');
-    $username = mysqli_real_escape_string($conn, $_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
-    $token = $_POST['csrf_token'] ?? '';
-
-    if ($token !== $_SESSION['csrf_token']) {
-        echo json_encode(['success' => false, 'message' => 'Lỗi bảo mật (CSRF)']);
-        exit;
-    }
-
-    $stmt = $conn->prepare("SELECT librarianname, password, role FROM librarian WHERE username = ? AND status = 'ACTIVE'");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    if ($row = $result->fetch_assoc()) {
-        if (password_verify($password, $row['password']) || $password === $row['password']) {
-            session_regenerate_id(true);
-            $_SESSION['username'] = $username; 
-            $_SESSION['display_name'] = $row['librarianname']; 
-            $_SESSION['role'] = $row['role'];
-
-            $log_detail = "Thủ thư " . $row['librarianname'] . " ($username) đã đăng nhập hệ thống.";
-            $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'LOGIN', ?, NOW())");
-            $log_stmt->bind_param("ss", $username, $log_detail);
-            $log_stmt->execute();
-
-            echo json_encode(['success' => true, 'redirect' => 'index.php']);
-        } else {
-            $log_fail = "Cảnh báo: Thử đăng nhập sai mật khẩu cho tài khoản: $username";
-            $log_stmt = $conn->prepare("INSERT INTO system_log (username, action_type, action_detail, action_time) VALUES (?, 'LOGIN_FAIL', ?, NOW())");
-            $log_stmt->bind_param("ss", $username, $log_fail);
-            $log_stmt->execute();
-
-            echo json_encode(['success' => false, 'message' => 'Mật khẩu không chính xác']);
-        }
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Tài khoản không tồn tại']);
-    }
-    exit;
+// Nếu đã đăng nhập rồi thì chuyển hướng về trang chủ
+if(isset($_SESSION['username'])){
+    header("Location: index.php");
+    exit();
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập hệ thống</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <title>DANG NHAP </title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        /* --- GIAO DIỆN RETRO GAME START MENU --- */
+        * { 
+            box-sizing: border-box; 
+            margin: 0; 
+            padding: 0; 
+            font-family: 'VT323', monospace; 
+        }
         
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #0f172a; 
+            background-color: #000000; /* Nền đen tuyệt đối chuẩn game cổ điển */
+            color: #00FF00; /* Chữ màu xanh lá cây neon */
             height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #f1f5f9;
+            font-size: 22px;
+            overflow: hidden;
+            position: relative;
         }
 
+        /* Hiệu ứng màn hình CRT (Sọc sọc tivi cổ điển) */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 999;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* KHUNG ĐĂNG NHẬP KIỂU PANEL TRONG GAME */
         .login-card {
             width: 100%;
-            max-width: 380px;
-            background: #1e293b; 
+            max-width: 420px;
+            background: #000000; 
             padding: 40px 30px;
-            border-radius: 12px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-            border: 1px solid #334155;
+            border: 4px double #00FF00; /* Viền đôi màu xanh neon */
+            box-shadow: 8px 8px 0px #004400; /* Đổ bóng khối cứng 2D */
         }
 
         .header {
@@ -86,78 +65,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_login'])) {
         }
 
         .header h2 {
-            font-size: 22px;
-            font-weight: 600;
-            color: #ffffff;
-            margin-bottom: 8px;
+            font-size: 38px;
+            font-weight: bold;
+            color: #FFFF00; /* Tiêu đề màu vàng chanh nổi bật */
+            text-shadow: 3px 3px #FF0000; /* Đổ bóng đỏ phong cách Arcade */
+            letter-spacing: 2px;
+            margin-bottom: 5px;
         }
 
         .header p {
-            font-size: 14px;
-            color: #94a3b8;
+            font-size: 20px;
+            color: #00FFFF; /* Màu xanh cyan */
+            text-transform: uppercase;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
 
         .form-group label {
             display: block;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #cbd5e1;
+            font-size: 18px;
+            margin-bottom: 6px;
+            color: #FFFF00;
+            text-transform: uppercase;
         }
 
+        /* Ô nhập liệu phong cách dòng lệnh (Command Line) */
         .form-group input {
             width: 100%;
-            padding: 12px 14px;
-            background: #0f172a;
-            border: 1px solid #475569;
-            border-radius: 6px;
-            font-size: 15px;
-            color: #ffffff;
+            padding: 10px 15px;
+            background: #001100; /* Nền xanh rêu cực tối */
+            border: 2px solid #00FF00;
+            font-size: 22px;
+            color: #00FF00;
             outline: none;
-            transition: border-color 0.2s;
         }
 
+        /* Hiệu ứng nhấp nháy hoặc đổi màu khi click vào ô nhập */
         .form-group input:focus {
-            border-color: #3b82f6;
+            border-color: #FFFF00;
+            background: #002200;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
         }
 
+        /* NÚT XÁC NHẬN BUTTON GIỐNG NÚT BẤM "START GAME" */
         .btn-submit {
             width: 100%;
             padding: 12px;
-            background-color: #3b82f6; 
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            font-weight: 600;
+            background-color: #00FF00; 
+            color: #000000;
+            border: 2px dashed #000000;
+            font-size: 24px;
+            font-weight: bold;
             cursor: pointer;
-            transition: opacity 0.2s;
-            margin-top: 10px;
+            margin-top: 15px;
+            text-transform: uppercase;
         }
 
         .btn-submit:hover {
-            opacity: 0.9;
+            background-color: #FFFF00; /* Đổi sang vàng chanh khi trỏ vào */
+            color: #000000;
         }
 
         .btn-submit:disabled {
-            background-color: #475569;
+            background-color: #004400;
+            color: #00FF00;
             cursor: not-allowed;
+            border: 2px solid #00FF00;
         }
 
+        /* HỘP BÁO LỖI KIỂU CẢNH BÁO GAME OVER / SYSTEM ERROR */
         .error-box {
-            background-color: rgba(239, 68, 68, 0.1);
-            color: #f87171;
+            background-color: #000000;
+            color: #FF00FF; /* Chữ màu hồng neon cảnh báo */
             padding: 10px;
-            border-radius: 6px;
-            font-size: 13px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(239, 68, 68, 0.2);
+            font-size: 18px;
+            margin-bottom: 25px;
+            border: 2px dashed #FF00FF;
             display: none;
             text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
         }
     </style>
 </head>
@@ -165,27 +154,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_login'])) {
 
 <div class="login-card">
     <div class="header">
-        <h2>Đăng nhập</h2>
-        <p>Quản lý Thư viện</p>
+        <h2>► START GAME</h2>
+        <p>QUAN LY THU VIEN </p>
     </div>
 
     <div id="errorBox" class="error-box"></div>
 
     <form id="loginForm">
         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-        <input type="hidden" name="ajax_login" value="1">
 
         <div class="form-group">
-            <label for="username">Tên đăng nhập</label>
-            <input type="text" id="username" name="username" placeholder="Tài khoản thủ thư" required autofocus>
+            <label for="username">> TÊN ĐĂNG NHẬP (USER):</label>
+            <input type="text" id="username" name="username" placeholder="Nhap tai khoan..." required autofocus autocomplete="off">
         </div>
 
         <div class="form-group">
-            <label for="password">Mật khẩu</label>
-            <input type="password" id="password" name="password" placeholder="••••••••" required>
+            <label for="password">> MẬT KHẨU (PASSWORD):</label>
+            <input type="password" id="password" name="password" placeholder="********" required>
         </div>
 
-        <button type="submit" class="btn-submit" id="submitBtn">Xác nhận</button>
+        <button type="submit" class="btn-submit" id="submitBtn">[ XAC NHAN DANG NHAP ]</button>
     </form>
 </div>
 
@@ -197,29 +185,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_login'])) {
     loginForm.onsubmit = async (e) => {
         e.preventDefault();
         errorBox.style.display = 'none';
-        submitBtn.innerText = 'Đang kiểm tra...';
+        submitBtn.innerText = '[ DANG XAC THUC... ]';
         submitBtn.disabled = true;
 
-        const formData = new FormData(loginForm);
+        const formData = {
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value,
+            csrf_token: loginForm.querySelector('input[name="csrf_token"]').value
+        };
 
         try {
-            const response = await fetch('', { method: 'POST', body: formData });
+            const response = await fetch('login_api.php', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData) 
+            });
             const data = await response.json();
 
-            if (data.success) {
-                submitBtn.innerText = 'Thành công!';
-                window.location.href = data.redirect;
+            if (data.status) {
+                submitBtn.innerText = '[ SUCCESS! ENTERING GAME ]';
+                window.location.href = 'index.php';
             } else {
-                errorBox.innerText = data.message;
+                errorBox.innerText = "! ERROR: " + data.message;
                 errorBox.style.display = 'block';
-                submitBtn.innerText = 'Xác nhận';
+                submitBtn.innerText = '[ XAC NHAN DANG NHAP ]';
                 submitBtn.disabled = false;
             }
         } catch (err) {
-            errorBox.innerText = "Lỗi kết nối máy chủ!";
+            errorBox.innerText = "! ERROR: MAT KET NOI API SERVER!";
             errorBox.style.display = 'block';
             submitBtn.disabled = false;
-            submitBtn.innerText = 'Xác nhận';
+            submitBtn.innerText = '[ XAC NHAN DANG NHAP ]';
         }
     };
 </script>
