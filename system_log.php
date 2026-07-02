@@ -366,3 +366,6 @@ function showAlert(text, type) {
 </script>
 </body>
 </html>
+
+
+<!--Ngoc huy ghi log o day-->
