@@ -15,7 +15,6 @@ if(!isset($_SESSION['username'])){
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- STYLE GIAO DIỆN ĐỒ HỌA GAME RETRO CHỨC NĂNG (BOOK) --- */
         * { 
             box-sizing: border-box; 
             margin: 0; 
@@ -24,15 +23,14 @@ if(!isset($_SESSION['username'])){
         }
         
         body { 
-            background-color: #000000; /* Nền đen game cổ điển */
-            color: #00FF00; /* Chữ màu xanh lá neon */
+            background-color: #000000; 
+            color: #00FF00; 
             padding: 25px; 
             font-size: 22px;
             position: relative;
             min-height: 100vh;
         }
 
-        /* Hiệu ứng màn hình CRT (Sọc tivi cổ điển) */
         body::before {
             content: " ";
             display: block;
@@ -49,11 +47,11 @@ if(!isset($_SESSION['username'])){
             margin: 0 auto; 
             background: #000000; 
             padding: 25px;
-            border: 4px double #00FF00; /* Viền đôi màu xanh lá */
+            border: 4px double #00FF00; 
             box-shadow: 6px 6px 0px #003300;
         }
         
-        /* THANH ĐIỀU HƯỚNG TRÊN CÙNG */
+
         .nav-bar { 
             display: flex; 
             justify-content: space-between; 
@@ -64,7 +62,7 @@ if(!isset($_SESSION['username'])){
         }
         .btn-back { 
             text-decoration: none; 
-            color: #FFFF00; /* Màu vàng chanh */
+            color: #FFFF00; 
         }
         .btn-back:hover { 
             color: #00FFFF;
@@ -73,7 +71,7 @@ if(!isset($_SESSION['username'])){
 
         h1 { font-size: 38px; font-weight: bold; color: #FFFF00; margin-bottom: 25px; display: flex; align-items: center; gap: 12px; text-shadow: 2px 2px #FF0000; }
         
-        /* ĐỀ MỤC PHÂN KHU ĐÓNG KHUNG GAME */
+        
         .section-title {
             font-size: 24px;
             color: #FFFF00;
@@ -84,7 +82,7 @@ if(!isset($_SESSION['username'])){
             display: inline-block;
         }
 
-        /* KHUNG CHỨA FORM NHẬP THÔNG TIN SÁCH */
+    
         .form-container {
             background: #000000;
             border: 3px solid #00FF00;
@@ -106,7 +104,7 @@ if(!isset($_SESSION['username'])){
             margin-bottom: 5px; 
         }
         
-        /* Ô INPUT/SELECT PHONG CÁCH CHỈNH SỬA LỆNH */
+        
         input, select { 
             width: 100%; 
             background: #000000; 
@@ -121,7 +119,7 @@ if(!isset($_SESSION['username'])){
             background: #001100;
         }
         
-        /* CÁC NÚT BẤM (BUTTONS) KIỂU NHẤN LỆNH CONSOLE */
+    
         .btn { 
             padding: 8px 20px; 
             border: 2px dashed #000000; 
@@ -135,21 +133,21 @@ if(!isset($_SESSION['username'])){
         }
         .btn-submit { background: #00FF00; color: #000000; }
         .btn-submit:hover { background: #FFFF00; }
-        .btn-edit { background: #FF00FF; color: #000000; } /* Hồng neon nổi bật cho chế độ sửa dữ liệu */
+        .btn-edit { background: #FF00FF; color: #000000; } 
         .btn-edit:hover { background: #FFFF00; }
 
-        /* KHUNG TÌM KIẾM ĐỒ HỌA DÒNG LỆNH */
+        
         .search-container { margin-bottom: 25px; position: relative; max-width: 400px; }
         .search-container input { padding-left: 35px; background: #000000; }
         .search-container i { position: absolute; left: 12px; top: 14px; color: #00FF00; font-size: 16px; }
 
-        /* BẢNG DỮ LIỆU ĐỒ HỌA GRID LƯỚI GAME */
+       
         .table-wrap { overflow-x: auto; border: 3px solid #00FF00; margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; min-width: 900px; background: #000000; }
         th { 
             text-align: left; 
             padding: 12px 10px; 
-            background: #002200; /* Tiêu đề nền xanh tối */
+            background: #002200; 
             font-size: 18px; 
             color: #FFFF00; 
             font-weight: bold;
@@ -158,7 +156,7 @@ if(!isset($_SESSION['username'])){
         td { padding: 12px 10px; border-bottom: 1px dashed #004400; font-size: 20px; color: #00FF00; }
         tr:hover { background: #001100; } 
         
-        /* Nhãn hiển thị Phân loại */
+      
         .cate-badge { 
             background: #002200; 
             color: #00FFFF; 
@@ -166,11 +164,11 @@ if(!isset($_SESSION['username'])){
             border: 1px solid #00FFFF; 
             font-size: 16px; 
         }
-        /* Định dạng cột mã ID và trạng thái Sẵn có */
+        
         .badge-id { color: #FFFF00; font-weight: bold; }
         .txt-avail { color: #00FF00; font-weight: bold; text-shadow: 0 0 3px #00FF00; }
 
-        /* KHUNG THÔNG BÁO CHỚP SÁNG */
+       
         .msg { padding: 12px; margin-bottom: 20px; text-align: center; font-weight: bold; display: none; text-transform: uppercase; }
         .success { background: #000000; color: #00FF00; border: 2px dashed #00FF00; }
         .error { background: #000000; color: #FF00FF; border: 2px dashed #FF00FF; }
@@ -271,7 +269,6 @@ if(!isset($_SESSION['username'])){
 <script>
 const apiUrl = 'book_api.php';
 
-// 1. HÀM LOAD DANH SÁCH SÁCH (GET)
 function loadBooks(searchKey = '') {
     let url = apiUrl;
     if(searchKey) {
@@ -309,15 +306,14 @@ function loadBooks(searchKey = '') {
         });
 }
 
-// Khởi tạo chạy danh sách sách ban đầu
 window.onload = () => loadBooks();
 
-// 2. XỬ LÝ TÌM KIẾM THEO TỪ KHÓA REAL-TIME
+
 document.getElementById('search').addEventListener('input', (e) => {
     loadBooks(e.target.value);
 });
 
-// 3. XỬ LÝ THÊM HOẶC CẬP NHẬT (POST / PUT)
+
 document.getElementById('bookForm').addEventListener('submit', function(e) {
     e.preventDefault(); 
 
@@ -354,7 +350,6 @@ document.getElementById('bookForm').addEventListener('submit', function(e) {
     });
 });
 
-// 4. XỬ LÝ XÓA ĐẦU SÁCH (DELETE)
 function deleteBook(id) {
     if(confirm('XOA DAU SACH NAY KHOI KHO? THAO TAC KHONG THE HOAN TAC!')) {
         fetch(`${apiUrl}?bookid=${id}`, {
@@ -372,7 +367,6 @@ function deleteBook(id) {
     }
 }
 
-// 5. ĐỔ DU LIỆU ĐẦU SÁCH LÊN FORM ĐỂ CHỈNH SỬA
 function editBook(id) {
     fetch(`${apiUrl}?key=${id}`)
         .then(res => res.json())
@@ -393,11 +387,10 @@ function editBook(id) {
             document.getElementById('category').value = b.category || '';
             document.getElementById('quantity').value = b.quantity;
             
-            // Kích hoạt ô hiển thị số lượng sách khả dụng trong kho khi sửa
             document.getElementById('avail-group').style.display = 'block';
             document.getElementById('available').value = b.available;
 
-            // Chuyển đổi trạng thái giao diện form sang màu chỉnh sửa hệ thống
+            
             document.getElementById('form-title').innerHTML = `<i class="fa fa-edit"></i> CAP NHAT THONG TIN SACH: ${b.bookid}`;
             const submitBtn = document.getElementById('btn-submit');
             submitBtn.className = 'btn btn-edit';
@@ -406,7 +399,6 @@ function editBook(id) {
         });
 }
 
-// HÀM RESET FORM VỀ TRẠNG THÁI BAN ĐẦU
 function resetForm() {
     document.getElementById('bookForm').reset();
     document.getElementById('action_mode').value = 'insert';
@@ -425,7 +417,6 @@ function resetForm() {
 
 document.getElementById('btn-cancel').addEventListener('click', resetForm);
 
-// HÀM HIỂN THỊ THÔNG BÁO FLASH HỆ THỐNG
 function showAlert(text, type) {
     const alertBox = document.getElementById('alert-msg');
     alertBox.innerHTML = text;

@@ -17,7 +17,6 @@ $role = $_SESSION['role'];
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-        /* --- STYLE GIAO DIỆN ĐỒ HỌA GAME RETRO CHỨC NĂNG (CHANGE PASSWORD) --- */
         * { 
             box-sizing: border-box; 
             margin: 0; 
@@ -26,8 +25,8 @@ $role = $_SESSION['role'];
         }
         
         body { 
-            background-color: #000000; /* Nền đen tivi cổ điển */
-            color: #00FF00; /* Chữ màu xanh lá neon */
+            background-color: #000000;
+            color: #00FF00;
             display: flex; 
             justify-content: center; 
             align-items: center; 
@@ -37,7 +36,6 @@ $role = $_SESSION['role'];
             overflow: hidden;
         }
 
-        /* Hiệu ứng màn hình CRT (Sọc quét ngang tivi cổ điển) */
         body::before {
             content: " ";
             display: block;
@@ -49,18 +47,16 @@ $role = $_SESSION['role'];
             pointer-events: none;
         }
         
-        /* KHỐI HỘP TRUNG TÂM PHONG CÁCH COMMAND PANEL */
         .card { 
             background: #000000; 
             padding: 35px 30px; 
-            border: 4px double #00FF00; /* Viền đôi xanh neon */
+            border: 4px double #00FF00; 
             width: 100%;
             max-width: 440px; 
             box-shadow: 6px 6px 0px #003300; 
             position: relative;
         }
         
-        /* KHU VỰC THÔNG TIN TÀI KHOẢN ĐANG ĐĂNG NHẬP */
         .header-info { 
             background: #001100; 
             padding: 12px; 
@@ -68,14 +64,14 @@ $role = $_SESSION['role'];
             margin-bottom: 25px; 
             text-align: center; 
             font-size: 18px;
-            color: #00FFFF; /* Màu xanh Cyan nổi bật */
+            color: #00FFFF; 
         }
         
         h2 { 
             margin-bottom: 20px; 
             font-size: 36px; 
             text-align: center; 
-            color: #FFFF00; /* Màu vàng retro */
+            color: #FFFF00; 
             font-weight: bold;
             text-shadow: 2px 2px #FF0000;
             text-transform: uppercase;
@@ -91,7 +87,7 @@ $role = $_SESSION['role'];
             font-weight: bold;
         }
         
-        /* Ô INPUT NHẬP LIỆU DÒNG LỆNH */
+    
         input { 
             width: 100%; 
             padding: 10px 12px; 
@@ -107,7 +103,7 @@ $role = $_SESSION['role'];
             background: #001100;
         }
         
-        /* NÚT LỆNH THỰC THI (XÁC NHẬN) */
+    
         .btn-save { 
             width: 100%; 
             padding: 12px; 
@@ -130,7 +126,6 @@ $role = $_SESSION['role'];
             cursor: not-allowed;
         }
         
-        /* BẢNG CẢNH BÁO / THÔNG BÁO CHỚP SÁNG TERMINAL */
         .alert { 
             padding: 12px; 
             margin-bottom: 20px; 
@@ -142,7 +137,7 @@ $role = $_SESSION['role'];
         }
         .alert-error { 
             background: #000000; 
-            color: #FF00FF; /* Hồng cánh sen cảnh báo lỗi */
+            color: #FF00FF; 
             border: 2px dashed #FF00FF; 
         }
         .alert-success { 
@@ -151,7 +146,6 @@ $role = $_SESSION['role'];
             border: 2px dashed #00FF00; 
         }
         
-        /* LIÊN KẾT ĐIỀU HƯỚNG QUAY LẠI */
         .back-link { 
             display: block; 
             text-align: center; 
@@ -211,19 +205,16 @@ $role = $_SESSION['role'];
         const newPass = document.getElementById('new_password').value;
         const confirmPass = document.getElementById('confirm_password').value;
 
-        // Kiểm tra độ dài mật khẩu mới
         if (newPass.length < 6) {
             showAlert('! LOI: MAT KHAU MOI PHAI TU 6 KY TU TRO LEN !', 'alert-error');
             return;
         }
 
-        // Kiểm tra trùng khớp mật khẩu
         if (newPass !== confirmPass) {
             showAlert('! LOI: MAT KHAU XAC NHAN KHONG TRUNG KHOP !', 'alert-error');
             return;
         }
 
-        // Chuyển trạng thái Button khi đang xử lý luồng bất đồng bộ
         btnSave.innerText = 'LOADING...';
         btnSave.disabled = true;
 
@@ -256,7 +247,6 @@ $role = $_SESSION['role'];
         }
     };
 
-    // Hàm gọi hiển thị thông báo tiến trình lệnh
     function showAlert(text, className) {
         alertBox.innerText = text;
         alertBox.className = `alert ${className}`;

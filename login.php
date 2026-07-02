@@ -3,7 +3,7 @@ session_start();
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
-// Nếu đã đăng nhập rồi thì chuyển hướng về trang chủ
+
 if(isset($_SESSION['username'])){
     header("Location: index.php");
     exit();
@@ -17,7 +17,6 @@ if(isset($_SESSION['username'])){
     <title>DANG NHAP </title>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
-        /* --- GIAO DIỆN RETRO GAME START MENU --- */
         * { 
             box-sizing: border-box; 
             margin: 0; 
@@ -26,8 +25,8 @@ if(isset($_SESSION['username'])){
         }
         
         body {
-            background-color: #000000; /* Nền đen tuyệt đối chuẩn game cổ điển */
-            color: #00FF00; /* Chữ màu xanh lá cây neon */
+            background-color: #000000; 
+            color: #00FF00; 
             height: 100vh;
             display: flex;
             align-items: center;
@@ -37,7 +36,6 @@ if(isset($_SESSION['username'])){
             position: relative;
         }
 
-        /* Hiệu ứng màn hình CRT (Sọc sọc tivi cổ điển) */
         body::before {
             content: " ";
             display: block;
@@ -49,14 +47,13 @@ if(isset($_SESSION['username'])){
             pointer-events: none;
         }
 
-        /* KHUNG ĐĂNG NHẬP KIỂU PANEL TRONG GAME */
         .login-card {
             width: 100%;
             max-width: 420px;
             background: #000000; 
             padding: 40px 30px;
-            border: 4px double #00FF00; /* Viền đôi màu xanh neon */
-            box-shadow: 8px 8px 0px #004400; /* Đổ bóng khối cứng 2D */
+            border: 4px double #00FF00; 
+            box-shadow: 8px 8px 0px #004400; 
         }
 
         .header {
@@ -67,15 +64,15 @@ if(isset($_SESSION['username'])){
         .header h2 {
             font-size: 38px;
             font-weight: bold;
-            color: #FFFF00; /* Tiêu đề màu vàng chanh nổi bật */
-            text-shadow: 3px 3px #FF0000; /* Đổ bóng đỏ phong cách Arcade */
+            color: #FFFF00; 
+            text-shadow: 3px 3px #FF0000; 
             letter-spacing: 2px;
             margin-bottom: 5px;
         }
 
         .header p {
             font-size: 20px;
-            color: #00FFFF; /* Màu xanh cyan */
+            color: #00FFFF; 
             text-transform: uppercase;
         }
 
@@ -91,25 +88,22 @@ if(isset($_SESSION['username'])){
             text-transform: uppercase;
         }
 
-        /* Ô nhập liệu phong cách dòng lệnh (Command Line) */
         .form-group input {
             width: 100%;
             padding: 10px 15px;
-            background: #001100; /* Nền xanh rêu cực tối */
+            background: #001100;
             border: 2px solid #00FF00;
             font-size: 22px;
             color: #00FF00;
             outline: none;
         }
 
-        /* Hiệu ứng nhấp nháy hoặc đổi màu khi click vào ô nhập */
         .form-group input:focus {
             border-color: #FFFF00;
             background: #002200;
             box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
         }
 
-        /* NÚT XÁC NHẬN BUTTON GIỐNG NÚT BẤM "START GAME" */
         .btn-submit {
             width: 100%;
             padding: 12px;
@@ -124,7 +118,7 @@ if(isset($_SESSION['username'])){
         }
 
         .btn-submit:hover {
-            background-color: #FFFF00; /* Đổi sang vàng chanh khi trỏ vào */
+            background-color: #FFFF00; 
             color: #000000;
         }
 
@@ -135,10 +129,10 @@ if(isset($_SESSION['username'])){
             border: 2px solid #00FF00;
         }
 
-        /* HỘP BÁO LỖI KIỂU CẢNH BÁO GAME OVER / SYSTEM ERROR */
+    
         .error-box {
             background-color: #000000;
-            color: #FF00FF; /* Chữ màu hồng neon cảnh báo */
+            color: #FF00FF; 
             padding: 10px;
             font-size: 18px;
             margin-bottom: 25px;

@@ -6,7 +6,6 @@ header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers
 
 include "librarydb.php";
 
-// Chặn truy cập API nếu Client chưa thiết lập quyền Session đăng nhập hợp lệ
 if(!isset($_SESSION['username'])){
     http_response_code(401);
     echo json_encode(["error" => "Yêu cầu quyền truy cập tài khoản hợp lệ từ hệ thống!"]);
@@ -20,12 +19,11 @@ $data = json_decode(file_get_contents("php://input"), true);
 
 switch ($method) {
     case 'GET':
-        // A. TRUY VẤN LẤY BẢNG TIN THÔNG BÁO (Tối đa 10 tin mới nhất)
         $notes_res = $conn->query("SELECT * FROM admin_notes ORDER BY created_at DESC LIMIT 10");
         $notes_list = [];
         while ($nRow = $notes_res->fetch_assoc()) { $notes_list[] = $nRow; }
 
-        // B. TRUY VẤN LẤY LOGS HOẠT ĐỘNG (Đã sửa để STAFF nhìn thấy toàn bộ)
+        
         $search = $_GET['search'] ?? '';
         if (!empty($search)) {
             $search_param = "%$search%";
@@ -49,7 +47,7 @@ switch ($method) {
         $logs_list = [];
         while ($lRow = $result->fetch_assoc()) { $logs_list[] = $lRow; }
 
-        // Trả gói dữ liệu phức hợp dạng mảng đôi
+        
         echo json_encode([
             "notes" => $notes_list,
             "logs" => $logs_list
@@ -57,7 +55,6 @@ switch ($method) {
         break;
 
     case 'POST':
-        // Xử lý Thêm thông báo nội bộ (Yêu cầu quyền ADMIN)
         if ($myRole !== 'ADMIN') {
             echo json_encode(["error" => "Lỗi: Tài khoản của bạn không có thẩm quyền thực hiện tác vụ này!"]);
             break;
@@ -79,7 +76,6 @@ switch ($method) {
         break;
 
     case 'DELETE':
-        // Xử lý Xóa thông tin (Yêu cầu quyền ADMIN)
         if ($myRole !== 'ADMIN') {
             echo json_encode(["error" => "Lỗi phân quyền: Tác vụ yêu cầu tài khoản quản trị viên!"]);
             break;

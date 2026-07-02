@@ -1,13 +1,13 @@
 <?php
 session_start();
 
-// Xóa toàn bộ session
+
 $_SESSION = [];
 
-// Hủy session
+
 session_destroy();
 
-// (Optional) xóa cookie session nếu có
+
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();
     setcookie(
@@ -21,7 +21,7 @@ if (ini_get("session.use_cookies")) {
     );
 }
 
-// Chuyển về trang login
+
 header("Location: login.php");
 exit();
 ?>

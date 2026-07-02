@@ -4,7 +4,8 @@ if(!isset($_SESSION['username'])){
     header("Location: login.php");
     exit();
 }
-
+header("Location: librarian_api.php");
+exit();
 ?>
 <!DOCTYPE html>
 <html lang="vi">
