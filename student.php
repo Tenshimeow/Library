@@ -132,12 +132,10 @@ if(!isset($_SESSION['username'])){
         .btn-edit { background: #FF00FF; color: #000000; } 
         .btn-edit:hover { background: #FFFF00; }
 
-    
         .search-container { margin-bottom: 25px; position: relative; max-width: 400px; }
         .search-container input { padding-left: 35px; background: #000000; }
         .search-container i { position: absolute; left: 12px; top: 14px; color: #00FF00; font-size: 16px; }
 
-        
         .table-wrap { overflow-x: auto; border: 3px solid #00FF00; margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; min-width: 900px; background: #000000; }
         th { 
@@ -152,7 +150,6 @@ if(!isset($_SESSION['username'])){
         td { padding: 12px 10px; border-bottom: 1px dashed #004400; font-size: 20px; color: #00FF00; }
         tr:hover { background: #001100; } 
         
-      
         .class-badge { 
             background: #002200; 
             color: #00FFFF; 
@@ -161,7 +158,6 @@ if(!isset($_SESSION['username'])){
             font-size: 16px; 
         }
 
-    
         .msg { padding: 12px; margin-bottom: 20px; text-align: center; font-weight: bold; display: none; text-transform: uppercase; }
         .success { background: #000000; color: #00FF00; border: 2px dashed #00FF00; }
         .error { background: #000000; color: #FF00FF; border: 2px dashed #FF00FF; }
@@ -194,7 +190,8 @@ if(!isset($_SESSION['username'])){
             <div class="form-grid">
                 <div class="input-group">
                     <label>> MÃ SINH VIÊN (MSSV):</label>
-                    <input type="text" id="studentid" placeholder="VD: 123456" required autocomplete="off">
+                    <!-- Tích hợp oninput dùng Regex xóa ký tự chữ ngay khi gõ -->
+                    <input type="text" id="studentid" placeholder="VD: 123456" required autocomplete="off" oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                 </div>
                 <div class="input-group">
                     <label>> HỌ VÀ TÊN:</label>
@@ -255,7 +252,7 @@ if(!isset($_SESSION['username'])){
                 </tr>
             </thead>
             <tbody id="table-body">
-                </tbody>
+            </tbody>
         </table>
     </div>
 </div>
@@ -315,9 +312,18 @@ document.getElementById('search').addEventListener('input', (e) => {
 document.getElementById('studentForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
+    const studentidValue = document.getElementById('studentid').value;
+
+    // KIỂM TRA LỚP CHẶN FRONTEND: Bắt lỗi nếu copy paste dữ liệu chữ vào ô nhập
+    if (!studentidValue || isNaN(studentidValue)) {
+        showAlert("! LOI: MA SINH VIEN (MSSV) CHI DUOC PHEP NHAP SO !", 'error');
+        document.getElementById('studentid').focus();
+        return; 
+    }
+
     const mode = document.getElementById('action_mode').value;
     const studentData = {
-        studentid: document.getElementById('studentid').value,
+        studentid: studentidValue,
         studentname: document.getElementById('studentname').value,
         gender: document.getElementById('gender').value,
         birthday: document.getElementById('birthday').value,

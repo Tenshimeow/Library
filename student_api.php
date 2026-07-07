@@ -30,7 +30,6 @@ switch ($method) {
             $stmt->execute();
             $res = $stmt->get_result()->fetch_assoc();
             
-            
             if($res) {
                 logAction($myUsername, $myRole, 'ACCESS', "Xem chi tiết thông tin Sinh viên có mã: $studentid");
             }
@@ -45,7 +44,6 @@ switch ($method) {
             $data_list = [];
             while ($row = $result->fetch_assoc()) { $data_list[] = $row; }
             
-          
             logAction($myUsername, $myRole, 'SEARCH', "Tìm kiếm Sinh viên với từ khóa: '$studentname'");
             echo json_encode($data_list); 
         } 
@@ -53,7 +51,6 @@ switch ($method) {
             $result = $conn->query("SELECT * FROM student ORDER BY studentid DESC");
             $data_list = [];
             while ($row = $result->fetch_assoc()) { $data_list[] = $row; }
-            
            
             logAction($myUsername, $myRole, 'ACCESS', "Truy cập Form Quản lý Sinh viên");
             echo json_encode($data_list);
@@ -63,6 +60,12 @@ switch ($method) {
     case 'POST':
         if (empty($data['studentid']) || empty($data['studentname']) || empty($data['email'])) {
             echo json_encode(["error" => "Khong duoc de trong studentid, studentname, email!"]);
+            break;
+        }
+
+        // BẢO VỆ BACKEND API: Chặn đứng trường hợp dữ liệu gửi lên cố tình chứa chữ
+        if (!is_numeric($data['studentid'])) {
+            echo json_encode(["error" => "Mã sinh viên không hợp lệ! Hệ thống chỉ chấp nhận giá trị số nguyên."]);
             break;
         }
 
@@ -95,6 +98,12 @@ switch ($method) {
     case 'PUT':
         if (empty($data['studentid'])) {
             echo json_encode(["error" => "Thieu studentid de cap nhat"]);
+            break;
+        }
+
+        // BẢO VỆ BACKEND API: Đảm bảo dữ liệu update cũng phải là số chuẩn chỉ
+        if (!is_numeric($data['studentid'])) {
+            echo json_encode(["error" => "Mã sinh viên không hợp lệ!"]);
             break;
         }
 

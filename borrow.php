@@ -277,7 +277,7 @@ function loadBorrows(searchKey = '') {
                 const dateBorrowedStr = `${String(dB.getDate()).padStart(2, '0')}/${String(dB.getMonth()+1).padStart(2, '0')}/${dB.getFullYear()}`;
                 
                 let dateReturnStr = "---";
-                if(row.date_return && row.date_return !== '0000-00-00') {
+                if(row.date_return && row.date_return !== '0000-00-00' && row.date_return !== null) {
                     const dR = new Date(row.date_return);
                     dateReturnStr = `${String(dR.getDate()).padStart(2, '0')}/${String(dR.getMonth()+1).padStart(2, '0')}/${dR.getFullYear()}`;
                 }
@@ -293,10 +293,10 @@ function loadBorrows(searchKey = '') {
                     <tr>
                         <td><span class="txt-id">${row.borrowid}</span></td>
                         <td>
-                            <div style="color: #00FF00; font-weight: bold;">${row.studentname}</div>
+                            <div style="color: #00FF00; font-weight: bold;">${row.studentname || 'Không rõ'}</div>
                             <div class="txt-sub">Mã SV: ${row.studentid}</div>
                         </td>
-                        <td><strong style="color: #FFFF00;">${row.bookname}</strong><br><span class="txt-sub">Mã sách: ${row.bookid}</span></td>
+                        <td><strong style="color: #FFFF00;">${row.bookname || 'Không rõ'}</strong><br><span class="txt-sub">Mã sách: ${row.bookid}</span></td>
                         <td>${dateBorrowedStr}</td>
                         <td>${dateReturnStr}</td>
                         <td><span class="badge ${badgeClass}">${badgeText}</span></td>
@@ -350,11 +350,10 @@ document.getElementById('returnForm').addEventListener('submit', function(e) {
     const currentBorrowId = document.getElementById('borrow_id_return').value;
     const inputReturnDate = document.getElementById('date_return').value;
 
-    const matchedRecord = localBorrowData.find(item => item.borrowid === currentBorrowId);
+    const matchedRecord = localBorrowData.find(item => String(item.borrowid) === String(currentBorrowId));
 
     if (matchedRecord) {
         const borrowDate = matchedRecord.date_borrowed; 
-        
         if (inputReturnDate < borrowDate) {
             const d = new Date(borrowDate);
             const formattedBorrowDate = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
@@ -419,6 +418,3 @@ function showAlert(text, type) {
 </script>
 </body>
 </html>
-
-
-<!--Manh dua file borrow-->

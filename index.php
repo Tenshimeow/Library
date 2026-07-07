@@ -24,7 +24,7 @@ $count_librarians = ($role == "ADMIN") ? $conn->query("SELECT COUNT(*) as t FROM
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DANH SACH DAU SACH </title>
+    <title>TRANG CHỦ</title>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
         * { 
@@ -232,7 +232,7 @@ $count_librarians = ($role == "ADMIN") ? $conn->query("SELECT COUNT(*) as t FROM
 
 <div class="main">
     <nav class="top-nav">
-        <div class="nav-title">HE THONG QUAN LY THU VIEN </div>
+        <div class="nav-title">HE THONG QUAN LY THU VIEN - NHOM 7 </div>
         
         <div class="profile-container">
             <div class="avatar-trigger" onclick="toggleMenu()">
