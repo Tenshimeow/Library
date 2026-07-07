@@ -14,6 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $data = json_decode(file_get_contents("php://input"), true);
 
+
 $username = trim($data['username'] ?? '');
 $password = $data['password'] ?? '';
 $csrf_token = $data['csrf_token'] ?? '';
