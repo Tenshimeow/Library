@@ -1,10 +1,10 @@
 <?php
 
-$host = "127.0.0.1";
-$user = "admin_library";
-$pass = "Library@2026";
+$host = "localhost";
+$user = "root";
+$pass = "";
 $db   = "librarydb";
-$port = 3306;
+$port = 3307;
 
 $conn = new mysqli($host, $user, $pass, $db, $port);
 
