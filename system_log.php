@@ -12,7 +12,7 @@ $role = $_SESSION['role'];
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nhật ký hệ thống - Library System</title>
+    <title>Lịch sử hệ thống - Library System</title>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -168,7 +168,7 @@ $role = $_SESSION['role'];
 
 <div class="container">
     <div class="nav-bar header">
-        <h2><i class="fa fa-history" style="color: #FFFF00;"></i> Nhật ký hoạt động hệ thống</h2>
+        <h2><i class="fa fa-history" style="color: #FFFF00;"></i> Lịch sử hoạt động hệ thống</h2>
         <a href="index.php" class="btn-back"><i class="fa fa-arrow-left"></i> [ QUAY LAI TRANG CHU ]</a>
     </div>
 

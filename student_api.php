@@ -63,7 +63,6 @@ switch ($method) {
             break;
         }
 
-        // BẢO VỆ BACKEND API: Chặn đứng trường hợp dữ liệu gửi lên cố tình chứa chữ
         if (!is_numeric($data['studentid'])) {
             echo json_encode(["error" => "Mã sinh viên không hợp lệ! Hệ thống chỉ chấp nhận giá trị số nguyên."]);
             break;
@@ -101,7 +100,6 @@ switch ($method) {
             break;
         }
 
-        // BẢO VỆ BACKEND API: Đảm bảo dữ liệu update cũng phải là số chuẩn chỉ
         if (!is_numeric($data['studentid'])) {
             echo json_encode(["error" => "Mã sinh viên không hợp lệ!"]);
             break;
