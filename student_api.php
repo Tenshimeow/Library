@@ -131,6 +131,15 @@ switch ($method) {
             echo json_encode(["error" => "Thieu studentid de xoa"]);
             break;
         }
+        $check_borrow = $conn->prepare("SELECT borrowid FROM borrow WHERE studentid = ? AND status = 'BORROWING'");
+        $check_borrow->bind_param("s", $studentid);
+        $check_borrow->execute();
+        $result_borrow = $check_borrow->get_result();
+
+        if ($result_borrow->num_rows > 0) {
+            echo json_encode(["error" => "Không thể xóa! Sinh viên này hiện đang mượn sách chưa trả."]);
+            break; 
+        }
 
         $stmt = $conn->prepare("DELETE FROM student WHERE studentid=?");
         $stmt->bind_param("s", $studentid);
